@@ -117,7 +117,7 @@ arrow. Snap to a 20 px grid.
 | arrow-overlap | two connectors share a collinear segment (> 20 px) | manual |
 | text-over-box | free text lies over a component box it is not bound to | manual |
 | text-behind-box | free text drawn before a filled box that covers it (invisible) | yes (moves it up) |
-| box-overlap | two component boxes intersect without one containing the other | manual |
+| box-overlap | two component boxes intersect without one containing the other. Exception: a cell grid of same-sized tiny boxes (area <= ~2500 px^2, equal height) in a row or column with regular spacing on a larger strip is not a collision; the strip is their container for z-order | manual |
 | text-on-region-edge | free text straddles a region border | manual |
 | text-overlap | two text elements intersect | manual |
 | arrow-through-text | a connector segment crosses a free text element (title, caption) | manual |

@@ -33,6 +33,76 @@ def icon_groups(els):
     return {g for g, ms in members.items() if len(ms) >= 3 and not any(m["type"] == "text" for m in ms)}
 
 
+# Tiny register/grid cells drawn on a strip (area at or under this) are not collisions.
+CELL_GRID_AREA = 2500
+
+
+def cell_grid_parents(filled_rects):
+    """Map cell id -> strip element for intentional small-cell grids.
+
+    Same-sized boxes (area <= CELL_GRID_AREA, equal width and height) that sit on one
+    larger box in a row or column with regular spacing: the strip is their container
+    for overlap and z-order. Cells may overhang the strip (drawn on top of it).
+    """
+    cells = [r for r in filled_rects if area(bbox(r)) <= CELL_GRID_AREA]
+    by_size = {}
+    for c in cells:
+        b = bbox(c)
+        key = (round(b[2] - b[0]), round(b[3] - b[1]))
+        by_size.setdefault(key, []).append(c)
+    out = {}
+    for group in by_size.values():
+        if len(group) < 2:
+            continue
+        # try row (shared y-centre) then column (shared x-centre)
+        for axis in ("row", "col"):
+            def centre(r, ax=axis):
+                b = bbox(r)
+                return ((b[1] + b[3]) / 2, (b[0] + b[2]) / 2) if ax == "row" else ((b[0] + b[2]) / 2, (b[1] + b[3]) / 2)
+
+            # primary = shared coordinate, secondary = along-axis sort key
+            primaries = [centre(r)[0] for r in group]
+            if max(primaries) - min(primaries) > 8:
+                continue
+            ordered = sorted(group, key=lambda r: centre(r)[1])
+            secs = [centre(r)[1] for r in ordered]
+            gaps = [secs[i + 1] - secs[i] for i in range(len(secs) - 1)]
+            if not gaps or min(gaps) <= 0:
+                continue
+            if max(gaps) - min(gaps) > 12:
+                continue
+            # find a strip that every cell sits on (centre inside, or any overlap)
+            for strip in filled_rects:
+                if strip in group:
+                    continue
+                sb = bbox(strip)
+                if area(sb) <= area(bbox(group[0])) * 1.5:
+                    continue
+                ok = True
+                for c in ordered:
+                    cb = bbox(c)
+                    cx, cy = (cb[0] + cb[2]) / 2, (cb[1] + cb[3]) / 2
+                    centre_in = sb[0] - 4 <= cx <= sb[2] + 4 and sb[1] - 4 <= cy <= sb[3] + 4
+                    if not (centre_in or overlap(cb, sb)):
+                        ok = False
+                        break
+                if not ok:
+                    continue
+                # strip should span the run of cells along the axis
+                if axis == "row":
+                    if sb[0] > secs[0] + 4 or sb[2] < secs[-1] - 4:
+                        continue
+                else:
+                    if sb[1] > secs[0] + 4 or sb[3] < secs[-1] - 4:
+                        continue
+                for c in ordered:
+                    out[c["id"]] = strip
+                break
+            if any(c["id"] in out for c in ordered):
+                break
+    return out
+
+
 def lint(path, font=None, arrowhead=None):
     d, els = load(path)
     want_font = STYLE["font"] if font is None else (font if isinstance(font, int) else FONT_IDS[font])
@@ -244,11 +314,18 @@ def lint(path, font=None, arrowhead=None):
         if hit:
             add("text-over-box", t, f"'{t['text'][:25]}' lies over box {hit['id']}; move the text or the arrow it labels", fixable=False)
 
+    # intentional cell grids on a strip: tiny equal cells in a row/column, not collisions
+    grid_parent = cell_grid_parents(filled_rects)
+    grid_pairs = {(cid, grid_parent[cid]["id"]) for cid in grid_parent}
+    grid_pairs |= {(b, a) for a, b in grid_pairs}
+
     # two component boxes overlapping (nesting, i.e. one fully inside the other, is fine)
     for i, a in enumerate(small_boxes):
         ab = bbox(a)
         for b in small_boxes[i + 1:]:
             bb = bbox(b)
+            if (a["id"], b["id"]) in grid_pairs:
+                continue
             if overlap((ab[0] + 1, ab[1] + 1, ab[2] - 1, ab[3] - 1), bb) and not inside(ab, bb) and not inside(bb, ab):
                 add("box-overlap", a, f"overlaps box {b['id']}; move one of them", fixable=False)
 
@@ -265,13 +342,19 @@ def lint(path, font=None, arrowhead=None):
                     f"move it inside or outside (label_at, or shift the arrow)", fixable=False)
                 break
 
-    # z-order: child rectangle before parent
+    # z-order: child rectangle before parent (strip counts as parent of its cell grid)
     for c in filled_rects:
         cb = bbox(c)
+        parents = []
+        if c["id"] in grid_parent:
+            parents.append(grid_parent[c["id"]])
         for p in filled_rects:
             if p is c: continue
             pb = bbox(p)
-            if inside(cb, pb) and area(pb) > area(cb) * 1.1 and idx[p["id"]] > idx[c["id"]]:
+            if inside(cb, pb) and area(pb) > area(cb) * 1.1:
+                parents.append(p)
+        for p in parents:
+            if idx[p["id"]] > idx[c["id"]]:
                 add("child-before-parent", c, f"drawn before its container {p['id']}")
                 break
     return out

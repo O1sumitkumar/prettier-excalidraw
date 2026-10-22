@@ -27,6 +27,10 @@ All notable changes to this project are documented here. The format follows
   gains the sizing and placement rules of thumb (box width, title inset, offsets,
   label placement) that iteration-3 test runs asked for.
 
+- `lint.py`: equal-sized tiny cells in a regular row or column on a strip are a
+  cell grid, not `box-overlap` collisions; the strip is their z-order parent
+  (#54, @dbdefault).
+
 ### Planned
 See [ROADMAP.md](ROADMAP.md).
 
