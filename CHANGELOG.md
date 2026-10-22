@@ -13,6 +13,11 @@ All notable changes to this project are documented here. The format follows
   example `assets/examples/clickstream.*` rebuilt from
   `docs/examples/source-clickstream.png` (#16).
 
+- Auto-layout foundation (#9): design note `scripts/layout/README.md` with the
+  stage contracts, the shared graph model `layout/graph.py` (spec → nodes, edges,
+  containers; explicit coordinates recorded as fixed), spec keys `layout` and
+  `in`, and `tests/test_layout.py` with placeholders per stage.
+
 ### Changed
 - SKILL.md description rewritten for triggering: leads with the condition
   ("deliverable is an Excalidraw file"), names the three jobs and the formats it

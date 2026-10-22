@@ -7,6 +7,7 @@ origin top-left, y grows downward. Lay things out on a 20 px grid.
 {
   "font": "comic",          // "comic" (Comic Shanns, default) | "nunito"
   "arrowhead": "outline",   // "outline" (hollow triangle, default) | "filled"
+  "layout": "lr",           // reading direction for auto-layout: "lr" (default) or "tb" (#9, in progress)
   "style": "style.json",    // optional: a style profile from profile.py (or --style on the CLI)
   "icons_dir": "icons",     // optional: folder(s) with the user's own icons, relative to the spec
   "elements": [ ... ]       // in any order; the builder sorts the z-order itself
@@ -38,6 +39,8 @@ Icon folders are searched in this order: `icons_dir` (a string or a list), then 
 {"id":"db","type":"box","x":30,"y":250,"w":240,"h":70,
  "label":"postgres database","fill":"blue","icon":"icons/postgresql.svg"}
 ```
+- `in`: `"<region id>"` names the region a box belongs to when it has no
+  coordinates yet (auto-layout, #9). With coordinates, membership is by bounds.
 - `fill`: `blue | yellow | green | red | purple | orange | teal | cyan | grey |
   lightgrey | white | none` or a hex colour.
 - `label` may contain `\n`; keep secondary info in `[brackets]` on line 2.
