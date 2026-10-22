@@ -30,7 +30,13 @@ jobs:
         id: tag
         run: echo "tag=${{ github.event.inputs.tag || github.ref_name }}" >> "$GITHUB_OUTPUT"
       - name: Check versions and extract changelog section
-        run: python3 tools/release_notes.py "${{ steps.tag.outputs.tag }}" -o notes.md
+        # a tag older than this workflow has no tools/release_notes.py; use main's copy
+        run: |
+          if [ ! -f tools/release_notes.py ]; then
+            git fetch --depth=1 origin main
+            mkdir -p tools && git show origin/main:tools/release_notes.py > tools/release_notes.py
+          fi
+          python3 tools/release_notes.py "${{ steps.tag.outputs.tag }}" -o notes.md
       - name: Unit tests
         run: python3 -m unittest discover -s tests
       - name: Build the skill asset
