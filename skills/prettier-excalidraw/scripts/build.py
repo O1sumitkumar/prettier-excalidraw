@@ -141,10 +141,12 @@ class Builder:
             e["boundElements"].append({"type": "text", "id": t["id"]})
             self.layers["text"].append(t)
         if icon_h:
-            self._image(it["icon"], it["x"] + 12, it["y"] + (h - icon_h) / 2, None, icon_h, group=e)
+            self._image(it["icon"], it["x"] + 12, it["y"] + (h - icon_h) / 2, None, icon_h, group=e,
+                        owner=f"box {it.get('id')}")
 
     def add_image(self, it):
-        e = self._image(it["src"], it["x"], it["y"], it.get("w"), it.get("h", 120), spec_id=it.get("id"))
+        e = self._image(it["src"], it["x"], it["y"], it.get("w"), it.get("h", 120), spec_id=it.get("id"),
+                        owner=f"image {it.get('id')}")
         if it.get("label"):
             size = it.get("size", 20)
             tw, th = text_size(it["label"], self.font, size)
@@ -205,10 +207,13 @@ class Builder:
         self.layers["text"].append(t)
         return t
 
-    def _image(self, src, x, y, w, h, group=None, spec_id=None):
+    def _image(self, src, x, y, w, h, group=None, spec_id=None, owner="image"):
         path = os.path.join(self.base_dir, src) if not os.path.isabs(src) else src
         data = open(path, "rb").read()
         ext = os.path.splitext(path)[1].lower()
+        problem = _image_problem(data, ext)
+        if problem:
+            raise SystemExit(f"{owner}: {src} {problem}")
         mime = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".svg": "image/svg+xml",
                 ".gif": "image/gif", ".webp": "image/webp"}.get(ext, "application/octet-stream")
         fid = hashlib.sha1(data).hexdigest()
@@ -323,6 +328,20 @@ class Builder:
                 "appState": {"gridSize": 20, "gridStep": 5, "gridModeEnabled": False,
                              "viewBackgroundColor": "#ffffff", "lockedMultiSelections": {}},
                 "files": self.files}
+
+
+def _image_problem(data, ext):
+    """Why the bytes are not the image the extension says, or None. A failed download
+    (missing Simple Icons slug) leaves an empty or HTML file behind."""
+    if not data:
+        return "is empty"
+    if ext == ".svg" and not data.lstrip(b"\xef\xbb\xbf \t\r\n").startswith((b"<svg", b"<?xml")):
+        return "is not an SVG (expected it to start with <svg or <?xml)"
+    if ext == ".png" and not data.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "is not a PNG"
+    if ext in (".jpg", ".jpeg") and not data.startswith(b"\xff\xd8\xff"):
+        return "is not a JPEG"
+    return None
 
 
 def _image_dims(data, ext):
