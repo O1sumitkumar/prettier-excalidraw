@@ -6,6 +6,11 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Planned
+See [ROADMAP.md](ROADMAP.md).
+
+## [0.3.0] - 2026-10-22
+
 ### Added
 - `export.py`: SVG or PNG export of any diagram with the real fonts embedded,
   rasterised by Chrome or macOS quick-look; `build.py --png` / `--svg` write the
@@ -30,6 +35,10 @@ All notable changes to this project are documented here. The format follows
   moves it up); `arrow-through-box` ignores a box that contains the arrow's endpoint;
   `--help` works.
 
+### Verified
+- Elbowed bound arrows re-route and bound labels stay centred when boxes are
+  dragged and resized in Excalidraw (manual check by the author).
+
 ### Fixed
 - Icon file errors name the box or image that uses the file and tolerate a UTF-8
   BOM (from #23 by @O1sumitkumar); `export.py` runs Chrome with a throwaway
@@ -42,9 +51,6 @@ All notable changes to this project are documented here. The format follows
   a broken image (#1).
 - `fix.py` refreshes `versionNonce` along with `version` so collaborative
   sessions pick up the change (#2).
-
-### Planned
-See [ROADMAP.md](ROADMAP.md).
 
 ## [0.2.0] - 2026-10-22
 
