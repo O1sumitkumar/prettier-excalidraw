@@ -1,0 +1,55 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to release (must exist), e.g. v0.4.0"
+        required: true
+      dry_run:
+        description: "Only run the checks and build the asset; do not create a release"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Resolve tag
+        id: tag
+        run: echo "tag=${{ github.event.inputs.tag || github.ref_name }}" >> "$GITHUB_OUTPUT"
+      - name: Check versions and extract changelog section
+        run: python3 tools/release_notes.py "${{ steps.tag.outputs.tag }}" -o notes.md
+      - name: Unit tests
+        run: python3 -m unittest discover -s tests
+      - name: Build the skill asset
+        run: |
+          mkdir -p dist
+          (cd skills && zip -qr "../dist/prettier-excalidraw-skill-${{ steps.tag.outputs.tag }}.zip" prettier-excalidraw -x '*/__pycache__/*')
+          ls -la dist
+      - name: Show notes (dry run)
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run == 'true' }}
+        run: cat notes.md
+      - name: Create GitHub release
+        if: ${{ github.event_name == 'push' || github.event.inputs.dry_run != 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ steps.tag.outputs.tag }}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/*.zip --clobber
+            gh release edit "$TAG" --notes-file notes.md
+          else
+            gh release create "$TAG" --title "$TAG" --notes-file notes.md dist/*.zip
+          fi

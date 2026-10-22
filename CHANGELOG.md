@@ -19,6 +19,10 @@ All notable changes to this project are documented here. The format follows
 - Issue forms (bug, feature), a PR template with the test checklist, and
   `size:` / `area:` labels on every open issue (#26).
 
+- `release` workflow: a pushed `vX.Y.Z` tag checks changelog and manifest versions,
+  runs the tests, zips the skill and creates the GitHub release with the changelog
+  section as notes; `tools/release_notes.py` runs the same check locally (#34).
+
 ### Planned
 See [ROADMAP.md](ROADMAP.md).
 

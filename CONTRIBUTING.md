@@ -43,3 +43,13 @@ set of real diagrams, so a change should come with the same kind of evidence:
 
 ## Commit messages
 Conventional Commits: `feat:`, `fix:`, `docs:`, `test:`, `chore:`.
+
+## How to release
+1. Move the `Unreleased` entries in `CHANGELOG.md` under a new `## [X.Y.Z] - YYYY-MM-DD`
+   heading and set `"version"` to `X.Y.Z` in `.claude-plugin/plugin.json` and
+   `.claude-plugin/marketplace.json` (both places in the latter).
+2. `python3 tools/release_notes.py vX.Y.Z` must print the section and `release check ok`.
+3. Commit, then `git tag -a vX.Y.Z -m "vX.Y.Z" && git push origin main vX.Y.Z`.
+4. The `release` workflow runs the checks and tests again, zips the skill, and creates
+   the GitHub release with that changelog section as its notes. To rehearse without
+   releasing: Actions → release → Run workflow with the tag and `dry_run` on.
