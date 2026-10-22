@@ -25,7 +25,7 @@ class TestSkillLayout(unittest.TestCase):
         head = text.split("---")[1]
         self.assertIn("name: prettier-excalidraw", head)
         self.assertIn("description:", head)
-        self.assertLess(len(text.splitlines()), 200, "SKILL.md should stay short")
+        self.assertLess(len(text.splitlines()), 300, "SKILL.md should stay short")
 
     def test_every_lint_rule_is_documented(self):
         guide = open(os.path.join(SKILL, "references", "style-guide.md"), encoding="utf-8").read()

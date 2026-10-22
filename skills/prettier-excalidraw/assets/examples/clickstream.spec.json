@@ -1,0 +1,248 @@
+{
+ "font": "comic",
+ "arrowhead": "outline",
+ "elements": [
+  {
+   "id": "apps",
+   "type": "box",
+   "label": "web & mobile apps\n[js sdk \u00b7 ios \u00b7 android]",
+   "x": 0,
+   "y": 140,
+   "w": 280,
+   "h": 80,
+   "fill": "grey"
+  },
+  {
+   "id": "ingest",
+   "type": "region",
+   "title": "[ ingest ]",
+   "subtitle": "aws us-east-1",
+   "x": 380,
+   "y": 80,
+   "w": 820,
+   "h": 620,
+   "tint": "blue"
+  },
+  {
+   "id": "gateway",
+   "type": "box",
+   "label": "api gateway\n[rest, 50k rps]",
+   "icon": "icons/amazonapigateway.svg",
+   "x": 400,
+   "y": 140,
+   "w": 320,
+   "h": 80,
+   "fill": "green"
+  },
+  {
+   "id": "kinesis",
+   "type": "box",
+   "label": "kinesis data streams\n[24h retention]",
+   "x": 840,
+   "y": 140,
+   "w": 320,
+   "h": 80,
+   "fill": "red"
+  },
+  {
+   "id": "lambda",
+   "type": "box",
+   "label": "lambda enricher\n[geo-ip, devices]",
+   "icon": "icons/awslambda.svg",
+   "x": 400,
+   "y": 340,
+   "w": 340,
+   "h": 80,
+   "fill": "blue"
+  },
+  {
+   "id": "s3",
+   "type": "box",
+   "label": "s3 data lake\n[parquet, hourly]",
+   "icon": "icons/amazons3.svg",
+   "x": 840,
+   "y": 340,
+   "w": 340,
+   "h": 80,
+   "fill": "red"
+  },
+  {
+   "id": "glue",
+   "type": "box",
+   "label": "glue catalog\n[schemas]",
+   "x": 640,
+   "y": 560,
+   "w": 280,
+   "h": 80,
+   "fill": "red"
+  },
+  {
+   "id": "serving",
+   "type": "region",
+   "title": "[ serving ]",
+   "x": 1300,
+   "y": 80,
+   "w": 700,
+   "h": 620,
+   "tint": "teal"
+  },
+  {
+   "id": "redshift",
+   "type": "box",
+   "label": "redshift\n[warehouse]",
+   "icon": "icons/amazonredshift.svg",
+   "x": 1340,
+   "y": 140,
+   "w": 300,
+   "h": 80,
+   "fill": "red"
+  },
+  {
+   "id": "quicksight",
+   "type": "box",
+   "label": "quicksight\n[dashboards]",
+   "x": 1680,
+   "y": 140,
+   "w": 280,
+   "h": 80,
+   "fill": "cyan"
+  },
+  {
+   "id": "athena",
+   "type": "box",
+   "label": "athena\n[ad-hoc sql]",
+   "x": 1340,
+   "y": 340,
+   "w": 300,
+   "h": 80,
+   "fill": "blue"
+  },
+  {
+   "id": "analysts",
+   "type": "box",
+   "label": "analysts\n[notebooks]",
+   "x": 1680,
+   "y": 340,
+   "w": 280,
+   "h": 80,
+   "fill": "grey"
+  },
+  {
+   "id": "pagerduty",
+   "type": "box",
+   "label": "pagerduty\n[alerts on lag]",
+   "icon": "icons/pagerduty.svg",
+   "x": 1340,
+   "y": 560,
+   "w": 320,
+   "h": 80,
+   "fill": "purple"
+  },
+  {
+   "type": "arrow",
+   "from": "apps",
+   "to": "gateway",
+   "label": "events",
+   "from_side": "right",
+   "to_side": "left"
+  },
+  {
+   "type": "arrow",
+   "from": "gateway",
+   "to": "kinesis"
+  },
+  {
+   "type": "arrow",
+   "from": "kinesis",
+   "to": "s3",
+   "label": "stream",
+   "from_side": "bottom",
+   "to_side": "top",
+   "to_offset": -10
+  },
+  {
+   "type": "arrow",
+   "from": "s3",
+   "to": "lambda",
+   "label": "read raw",
+   "from_side": "left",
+   "to_side": "right"
+  },
+  {
+   "type": "arrow",
+   "from": "lambda",
+   "to": "glue",
+   "label": "registers schema",
+   "from_side": "bottom",
+   "to_side": "top",
+   "to_offset": -60,
+   "label_at": "start"
+  },
+  {
+   "type": "arrow",
+   "from": "s3",
+   "to": "glue",
+   "label": "partitions",
+   "from_side": "bottom",
+   "to_side": "top",
+   "to_offset": 60
+  },
+  {
+   "type": "arrow",
+   "from": "s3",
+   "to": "redshift",
+   "label": "copy",
+   "from_side": "right",
+   "to_side": "left",
+   "from_offset": -20,
+   "bend": 1255
+  },
+  {
+   "type": "arrow",
+   "from": "s3",
+   "to": "athena",
+   "label": "load",
+   "from_side": "right",
+   "to_side": "left",
+   "from_offset": 20,
+   "to_offset": 20
+  },
+  {
+   "type": "arrow",
+   "from": "redshift",
+   "to": "quicksight"
+  },
+  {
+   "type": "arrow",
+   "from": "athena",
+   "to": "analysts"
+  },
+  {
+   "type": "arrow",
+   "from": "kinesis",
+   "to": "pagerduty",
+   "label": "alarm",
+   "color": "red",
+   "dashed": true,
+   "from_side": "right",
+   "to_side": "left",
+   "from_offset": 20,
+   "bend": 1215,
+   "label_at": "end"
+  },
+  {
+   "type": "text",
+   "text": "clickstream analytics pipeline",
+   "x": 0,
+   "y": 740,
+   "size": 28
+  },
+  {
+   "type": "text",
+   "text": "grey = users \u00b7 green = gateway \u00b7 blue = compute \u00b7 red = stores & streams \u00b7 cyan = interfaces \u00b7 purple = alerting",
+   "x": 0,
+   "y": 790,
+   "size": 16
+  }
+ ]
+}

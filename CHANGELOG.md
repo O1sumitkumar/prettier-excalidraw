@@ -6,6 +6,13 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- Replicate a diagram from a shared image: `references/reading-a-diagram.md`
+  (extraction checklist, mapping to the house style, what to drop, the
+  "changes from the original" note) and a replicate workflow in SKILL.md; worked
+  example `assets/examples/clickstream.*` rebuilt from
+  `docs/examples/source-clickstream.png` (#16).
+
 ### Changed
 - SKILL.md description rewritten for triggering: leads with the condition
   ("deliverable is an Excalidraw file"), names the three jobs and the formats it

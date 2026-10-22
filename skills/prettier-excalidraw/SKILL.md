@@ -18,6 +18,7 @@ make it mechanical so you can spend your effort on layout and meaning instead of
 | A new diagram | **Generate**: write a spec, `build.py`, preview, lint, deliver |
 | An existing `.excalidraw` made prettier / consistent | **Restyle**: `lint.py` → `fix.py` → `lint.py`, then hand-fix the manual findings |
 | "Does this follow the style?" | **Check**: `lint.py` and explain the findings |
+| A picture of someone else's diagram, "redo this in our style" | **Replicate**: read it with `references/reading-a-diagram.md`, then generate |
 
 All scripts are Python 3 standard library only and live in `scripts/`. Run them from
 that directory (they import each other) or set `PYTHONPATH` to it.
@@ -137,6 +138,18 @@ that directory (they import each other) or set `PYTHONPATH` to it.
    any existing file; the export embeds the real fonts and keeps the exact layout. Say
    what each colour means in one line, since colour coding is only useful if the reader
    knows the key.
+
+## Replicate a diagram from an image
+
+When the user shares a screenshot or picture of a diagram, read it with the checklist
+in `references/reading-a-diagram.md`: containers, components with their exact labels,
+every arrow with direction and meaning, the colour key, the reading direction, and
+what is implied but not drawn. That produces the same component list the generate
+workflow starts from; continue from step 2 there. Keep the information architecture,
+drop the visual style: roles decide fills, real logos replace drawn ones, curved
+arrows become elbowed ones between the same endpoints. Deliver with a "changes from
+the original" note listing what was renamed, merged, added or dropped, so the user
+can trust the rebuild without comparing every box.
 
 ## Restyle an existing diagram
 

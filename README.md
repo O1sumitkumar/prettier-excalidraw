@@ -22,6 +22,7 @@ moving anything.
 | "draw an excalidraw diagram of X" | Asks about anything the prompt leaves open (who uses that database?), writes a spec, builds the file, previews it, lints it, delivers it with a colour key |
 | "make this .excalidraw consistent / prettier" | `lint` → `fix` → `lint`, then tells you what still needs a human |
 | "does this follow the style?" | Runs the linter and explains each finding |
+| "redo this diagram in our style" with a picture | Reads the picture with a fixed checklist, rebuilds it, and lists what changed |
 
 The style was derived by measuring a set of real diagrams (839 elements) rather
 than invented, so the rules have numbers behind them. See
@@ -115,6 +116,7 @@ example:
 | [platform](skills/prettier-excalidraw/assets/examples/platform.spec.json) | three stacked layers, nine logos, colour key |
 | [payment](skills/prettier-excalidraw/assets/examples/payment.spec.json) | stores under their owner, webhook return arrow |
 | [flowchart](skills/prettier-excalidraw/assets/examples/flowchart.spec.json) | diamond decision node and ellipse start/yes/no markers |
+| [clickstream](skills/prettier-excalidraw/assets/examples/clickstream.spec.json) | a vendor-style picture ([source](docs/examples/source-clickstream.png)) rebuilt in house style; [how it was read](docs/examples/clickstream-notes.md) |
 | [layered-architecture](skills/prettier-excalidraw/assets/examples/layered-architecture.excalidraw) | a hand-drawn reference diagram the style was measured from |
 
 ## Evaluation

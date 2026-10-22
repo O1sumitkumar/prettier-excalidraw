@@ -21,7 +21,7 @@ and fall back to quick-look on macOS. Keep stdlib only.
 
 ## 2. Input formats
 
-### 2.1 Replicate a diagram from a shared image  (M)
+### 2.1 Replicate a diagram from a shared image  (M) — done
 **What.** User pastes or links a PNG / JPG / screenshot of someone else's
 architecture diagram; the skill rebuilds it in house style as `.excalidraw`.
 **Why.** Diagrams arrive from blog posts, vendor docs and slides; people want the
