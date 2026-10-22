@@ -22,6 +22,8 @@ Labels are lowercase and short: `history-service`, `task-queue`, `sdk runtime`.
 Secondary info goes in square brackets: `Temporal Server` / `[durable execution engine]`,
 `prod vpc [10.20.0.0/16]`. Region titles are free text inside the region at the
 top-left or top-right, in brackets: `[ worker-script ]`.
+A caption, caveat or legend uses a `note`: lightgrey box, stroke width 1, left-aligned
+size-16 text with 12 px padding (bound, so it stays readable over a tinted region).
 
 ## 3. Boxes
 ```

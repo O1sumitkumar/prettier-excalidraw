@@ -235,6 +235,25 @@ class Builder:
         color = ARROW_COLORS.get(it.get("color", "black"), it.get("color", STYLE["stroke"]))
         self._free_text(it["text"], it["x"], it["y"], size, it.get("align", "left"), color=color)
 
+    def add_note(self, it):
+        """Caption / caveat / legend: lightgrey box, stroke 1, left-aligned small text, pad 12."""
+        text = it["text"]
+        size = it.get("size", default_size("small"))
+        pad = 12
+        tw, th = text_size(text, self.font, size)
+        w = it.get("w", tw + 2 * pad)
+        h = it.get("h", th + 2 * pad)
+        fill = FILLS["lightgrey"]
+        e = _base("rectangle", it["x"], it["y"], w, h, id=it.get("id"), backgroundColor=fill,
+                  strokeWidth=it.get("stroke_width", 1), roundness=STYLE["roundness"])
+        self._register(it, e, "box")
+        t = _base("text", it["x"] + pad, it["y"] + pad, tw, th,
+                  text=text, originalText=text, fontSize=size, fontFamily=self.font,
+                  textAlign="left", verticalAlign="top", containerId=e["id"], autoResize=True,
+                  lineHeight=LINE_H, backgroundColor=fill)
+        e["boundElements"].append({"type": "text", "id": t["id"]})
+        self.layers["text"].append(t)
+
     def add_arrow(self, it):
         src, dst = self.by_id.get(it["from"]), self.by_id.get(it["to"])
         if not src or not dst:

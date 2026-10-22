@@ -6,16 +6,20 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- `build.py`: `diamond` decision nodes and `ellipse` start/end/actor markers with
+  bound centred labels, palette fills, and the same arrow bindings / z-order as
+  boxes; flowchart example in `assets/examples/` (#36, @dbdefault).
+- `build.py`: `note` element - lightgrey annotation box with left-aligned bound
+  text (stroke 1, padding 12); `lint.py` ignores notes for `misleading-proximity`
+  (#37, @dbdefault).
+
 ### Planned
 See [ROADMAP.md](ROADMAP.md).
 
 ## [0.3.0] - 2026-10-22
 
 ### Added
-- `build.py`: `diamond` decision nodes and `ellipse` start/end/actor markers with
-  bound centred labels, palette fills, and the same arrow bindings / z-order as
-  boxes; example flowchart in `assets/examples/` (#36).
-
 - `export.py`: SVG or PNG export of any diagram with the real fonts embedded,
   rasterised by Chrome or macOS quick-look; `build.py --png` / `--svg` write the
   image next to the `.excalidraw` file (roadmap 1.1, #15).

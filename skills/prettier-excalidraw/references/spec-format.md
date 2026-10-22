@@ -92,6 +92,18 @@ below. Can be an arrow target when it has an `id`.
 ```
 `color`: `black | red | green | blue` or hex.
 
+### note – a caption, caveat or legend box
+```json
+{"type":"note","text":"connects with external MCP server\ncollect data periodically",
+ "x":1160,"y":640,"w":400}
+```
+Light-grey (`lightgrey` / `#e9ecef`) rectangle, stroke width 1, with left-aligned
+bound text at the small size and 12 px padding. Height is computed from the text;
+`w` is optional and defaults to the text width plus padding on both sides. Drawn in
+the box layer. Prefer a `note` over free `text` when the caption sits over a tinted
+region, so the background stays readable. `lint.py` treats the text as bound (no
+`text-over-box`) and ignores notes for `misleading-proximity`.
+
 ### arrow – a connector between two ids
 ```json
 {"type":"arrow","from":"queue","to":"worker1","label":"gRPC long-poll","color":"blue",
