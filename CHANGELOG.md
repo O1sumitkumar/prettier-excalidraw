@@ -6,6 +6,11 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- `export.py`: SVG or PNG export of any diagram with the real fonts embedded,
+  rasterised by Chrome or macOS quick-look; `build.py --png` / `--svg` write the
+  image next to the `.excalidraw` file (roadmap 1.1, #15).
+
 ### Planned
 See [ROADMAP.md](ROADMAP.md).
 

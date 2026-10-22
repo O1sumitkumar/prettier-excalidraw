@@ -202,6 +202,22 @@ class TestLintCli(unittest.TestCase):
         self.assertEqual(run("lint.py", os.path.join(EXAMPLES, "payment.excalidraw")).returncode, 0)
 
 
+class TestExport(unittest.TestCase):
+    def test_svg_export_without_network(self):
+        with tempfile.TemporaryDirectory() as td:
+            out = os.path.join(td, "p.svg")
+            r = run("export.py", os.path.join(EXAMPLES, "payment.excalidraw"), out, "--no-fonts")
+            self.assertEqual(r.returncode, 0, r.stderr)
+            self.assertTrue(open(out).read().startswith("<svg"))
+
+    def test_build_svg_flag(self):
+        with tempfile.TemporaryDirectory() as td:
+            out = os.path.join(td, "o.excalidraw")
+            r = run("build.py", os.path.join(EXAMPLES, "payment.spec.json"), out, "--svg")
+            self.assertEqual(r.returncode, 0, r.stderr)
+            self.assertTrue(os.path.exists(os.path.join(td, "o.svg")))
+
+
 class TestPreview(unittest.TestCase):
     def test_svg_written(self):
         with tempfile.TemporaryDirectory() as td:

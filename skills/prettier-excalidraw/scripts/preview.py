@@ -13,15 +13,12 @@ Standard library only.
 import html, json, sys
 from exstyle import bbox
 
-FONT_CSS = {8: "'Comic Shanns', 'Comic Mono', monospace", 6: "Nunito, sans-serif"}
+FONT_CSS = {8: "'Comic Shanns', 'Comic Mono', monospace", 6: "'Nunito', sans-serif"}
 
 
-def main():
-    if len(sys.argv) < 3:
-        print(__doc__); sys.exit(2)
-    src, out = sys.argv[1], sys.argv[2]
-    square = "--square" in sys.argv
-    d = json.load(open(src))
+def render_svg(d, square=False, fonts=None):
+    """Return the SVG text for an Excalidraw document.
+    fonts: {family-name: [woff2 bytes, ...]} to embed as @font-face (see export.py)."""
     els = [e for e in d["elements"] if not e.get("isDeleted")]
     files = d.get("files", {})
     xs0, ys0, xs1, ys1 = zip(*(bbox(e) for e in els))
@@ -86,7 +83,24 @@ def main():
                     else:
                         parts.append(f'<polygon points="{a1[0]},{a1[1]} {x1},{y1} {a2[0]},{a2[1]}" fill="{hf}" stroke="{sc}" stroke-width="{sw}"/>')
     parts.append("</svg>")
-    open(out, "w").write("\n".join(parts))
+    if fonts:
+        import base64
+        faces = []
+        for fam, blobs in fonts.items():
+            for blob in blobs:
+                faces.append(f"@font-face{{font-family:'{fam}';src:url(data:font/woff2;base64,"
+                             f"{base64.b64encode(blob).decode()}) format('woff2');}}")
+        parts.insert(1, "<style>" + "".join(faces) + "</style>")
+    return "\n".join(parts)
+
+
+def main():
+    if len(sys.argv) < 3:
+        print(__doc__); sys.exit(2)
+    src, out = sys.argv[1], sys.argv[2]
+    square = "--square" in sys.argv
+    d = json.load(open(src))
+    open(out, "w").write(render_svg(d, square=square))
     print(f"wrote {out}")
 
 

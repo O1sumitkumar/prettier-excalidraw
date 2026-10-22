@@ -2,7 +2,9 @@
 """Build a .excalidraw file from a small JSON spec, in the prettier-excalidraw style.
 
 Usage:
-    python3 build.py spec.json out.excalidraw
+    python3 build.py spec.json out.excalidraw [--png] [--svg]
+
+--png / --svg also write out.png / out.svg next to the diagram (see export.py).
 
 The spec describes WHAT is in the diagram (regions, boxes, icons, arrows) and
 WHERE; this script takes care of every stylistic property (font, roughness,
@@ -352,9 +354,11 @@ def _image_dims(data, ext):
 
 
 def main():
-    if len(sys.argv) != 3:
+    flags = {a for a in sys.argv[1:] if a.startswith("--")}
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    if len(args) != 2:
         print(__doc__); sys.exit(2)
-    spec_path, out = sys.argv[1], sys.argv[2]
+    spec_path, out = args
     spec = json.load(open(spec_path))
     b = Builder(spec, base_dir=os.path.dirname(os.path.abspath(spec_path)))
     doc = b.build()
@@ -362,6 +366,11 @@ def main():
     for w in b.warnings:
         print("warning:", w)
     print(f"wrote {out}: {len(doc['elements'])} elements, {len(doc['files'])} embedded images")
+    for flag, ext in (("--svg", ".svg"), ("--png", ".png")):
+        if flag in flags:
+            from export import export
+            target = os.path.splitext(out)[0] + ext
+            print(f"wrote {target} ({export(out, target)})")
 
 
 if __name__ == "__main__":

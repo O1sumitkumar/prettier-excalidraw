@@ -89,8 +89,14 @@ order the spec by hand.
 ## Worked example
 See `assets/examples/temporal.spec.json` and the `.excalidraw` it builds.
 
-## Rendering a preview to PNG
-`preview.py` writes SVG. To look at it, best first:
+## Exporting an image
+`export.py diagram.excalidraw out.png` (or `out.svg`, `--scale 3`, `--no-fonts`) writes a
+shareable image: exact layout, the real Comic Shanns / Nunito fonts embedded (fetched
+once and cached), rasterised with Chrome when installed or quick-look on macOS.
+`build.py spec.json out.excalidraw --png` does the same in one step.
+
+## Rendering a quick preview
+`preview.py` writes a lighter SVG without fonts, for layout checks. To look at it:
 - Chrome, any OS, exact size and crisp at 2x. Read `width`/`height` from the SVG's
   first line, then:
   ```

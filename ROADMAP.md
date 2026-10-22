@@ -7,7 +7,7 @@ scheduled; pick by need.
 
 ## 1. Output formats
 
-### 1.1 PNG / SVG export next to the `.excalidraw` file  (M)
+### 1.1 PNG / SVG export next to the `.excalidraw` file  (M) — done in `export.py`
 **What.** `export.py diagram.excalidraw out.png [--scale 2] [--svg]`, and a
 `"png": true` option in the spec / a `--png` flag on `build.py`, so a user who asks
 for "a diagram for the README" gets both the editable file and an image.
