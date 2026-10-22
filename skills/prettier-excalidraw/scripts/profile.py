@@ -30,7 +30,7 @@ def profile(paths):
     n_files = 0
     for p in paths:
         try:
-            d = json.load(open(p))
+            d = json.load(open(p, encoding="utf-8"))
         except Exception:
             continue
         n_files += 1
@@ -104,7 +104,7 @@ def main():
     prof = profile(paths)
     if name:
         prof["name"] = name
-    json.dump(prof, open(out, "w"), indent=1)
+    json.dump(prof, open(out, "w", encoding="utf-8"), indent=1)
     m = prof["measured_from"]
     print(f"wrote {out} from {m['files']} files ({m['text']} texts, {m['shapes']} shapes, {m['arrows']} arrows)")
     print(f"  font {FONT_NAMES.get(prof['font'], prof['font'])}, sizes {prof['font_sizes']}, roughness {prof['roughness']}, "

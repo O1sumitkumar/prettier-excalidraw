@@ -99,8 +99,8 @@ def main():
         print(__doc__); sys.exit(2)
     src, out = sys.argv[1], sys.argv[2]
     square = "--square" in sys.argv
-    d = json.load(open(src))
-    open(out, "w").write(render_svg(d, square=square))
+    d = json.load(open(src, encoding="utf-8"))
+    open(out, "w", encoding="utf-8").write(render_svg(d, square=square))
     print(f"wrote {out}")
 
 

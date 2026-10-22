@@ -68,7 +68,7 @@ def to_png(svg, out, scale=2):
     w, h = svg_size(svg)
     with tempfile.TemporaryDirectory() as td:
         src = os.path.join(td, "d.svg")
-        open(src, "w").write(svg)
+        open(src, "w", encoding="utf-8").write(svg)
         chrome = find_chrome()
         if chrome:
             # a throwaway profile keeps this independent of a Chrome window that is already open
@@ -86,7 +86,7 @@ def to_png(svg, out, scale=2):
             vb = re.search(r'viewBox="([\d.\-]+) ([\d.\-]+) ([\d.]+) ([\d.]+)"', sq)
             x0, y0, vw, vh = map(float, vb.groups())
             sq = sq.replace(vb.group(0), f'viewBox="{x0 - (side - vw) / 2} {y0 - (side - vh) / 2} {side} {side}"', 1)
-            open(src, "w").write(sq)
+            open(src, "w", encoding="utf-8").write(sq)
             px = int(side * scale)
             subprocess.run(["qlmanage", "-t", "-s", str(px), "-o", td, src], check=True, timeout=90,
                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -98,10 +98,10 @@ def to_png(svg, out, scale=2):
 
 
 def export(src, out, scale=2, fonts=True):
-    doc = json.load(open(src))
+    doc = json.load(open(src, encoding="utf-8"))
     svg = render_svg(doc, fonts=fetch_fonts() if fonts else None)
     if out.lower().endswith(".svg"):
-        open(out, "w").write(svg)
+        open(out, "w", encoding="utf-8").write(svg)
         return "svg"
     if out.lower().endswith(".png"):
         return to_png(svg, out, scale)

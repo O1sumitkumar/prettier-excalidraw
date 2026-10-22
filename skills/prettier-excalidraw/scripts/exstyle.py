@@ -56,7 +56,7 @@ def size(which):
 def load_style(path):
     """Apply a style.json (written by profile.py or by hand) on top of the defaults."""
     import json
-    d = json.load(open(path))
+    d = json.load(open(path, encoding="utf-8"))
     for k in ("name", "font", "roughness", "stroke", "stroke_width", "roundness", "fill_style",
               "arrowhead", "elbowed", "canvas", "store_fills"):
         if k in d:

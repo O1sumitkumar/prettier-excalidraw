@@ -20,7 +20,7 @@ def run(script, *args):
 
 class TestSkillLayout(unittest.TestCase):
     def test_frontmatter(self):
-        text = open(os.path.join(SKILL, "SKILL.md")).read()
+        text = open(os.path.join(SKILL, "SKILL.md"), encoding="utf-8").read()
         self.assertTrue(text.startswith("---\n"))
         head = text.split("---")[1]
         self.assertIn("name: prettier-excalidraw", head)
@@ -28,8 +28,8 @@ class TestSkillLayout(unittest.TestCase):
         self.assertLess(len(text.splitlines()), 200, "SKILL.md should stay short")
 
     def test_every_lint_rule_is_documented(self):
-        guide = open(os.path.join(SKILL, "references", "style-guide.md")).read()
-        src = open(os.path.join(SCRIPTS, "lint.py")).read()
+        guide = open(os.path.join(SKILL, "references", "style-guide.md"), encoding="utf-8").read()
+        src = open(os.path.join(SCRIPTS, "lint.py"), encoding="utf-8").read()
         import re
         rules = set(re.findall(r'add\("([a-z-]+)"', src))
         self.assertTrue(rules)
@@ -47,7 +47,7 @@ class TestBuildExamples(unittest.TestCase):
                     out = os.path.join(td, "out.excalidraw")
                     r = run("build.py", spec, out)
                     self.assertEqual(r.returncode, 0, r.stderr)
-                    doc = json.load(open(out))
+                    doc = json.load(open(out, encoding="utf-8"))
                     self.assertEqual(doc["type"], "excalidraw")
                     findings = lint.lint(out)
                     self.assertEqual(findings, [], [f["message"] for f in findings])
@@ -62,7 +62,7 @@ class TestBuildExamples(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             out = os.path.join(td, "o.excalidraw")
             run("build.py", os.path.join(EXAMPLES, "temporal.spec.json"), out)
-            els = json.load(open(out))["elements"]
+            els = json.load(open(out, encoding="utf-8"))["elements"]
             types = [e["type"] for e in els]
             last_shape = max(i for i, t in enumerate(types) if t == "rectangle")
             first_arrow = min(i for i, t in enumerate(types) if t == "arrow")
@@ -90,14 +90,14 @@ class TestLintAndFix(unittest.TestCase):
         self.td = tempfile.TemporaryDirectory()
         self.src = os.path.join(self.td.name, "src.excalidraw")
         run("build.py", os.path.join(EXAMPLES, "temporal.spec.json"), self.src)
-        self.doc = json.load(open(self.src))
+        self.doc = json.load(open(self.src, encoding="utf-8"))
 
     def tearDown(self):
         self.td.cleanup()
 
     def _save(self, doc, name="bad.excalidraw"):
         p = os.path.join(self.td.name, name)
-        json.dump(doc, open(p, "w"))
+        json.dump(doc, open(p, "w", encoding="utf-8"))
         return p
 
     def test_detects_and_fixes_style_breaks(self):
@@ -197,8 +197,8 @@ class TestLintAndFix(unittest.TestCase):
 class TestSmallBugs(unittest.TestCase):
     def test_builder_rejects_bad_icon(self):
         with tempfile.TemporaryDirectory() as td:
-            bad = os.path.join(td, "missing.svg"); open(bad, "w").write("")
-            html = os.path.join(td, "page.svg"); open(html, "w").write("<html>404</html>")
+            bad = os.path.join(td, "missing.svg"); open(bad, "w", encoding="utf-8").write("")
+            html = os.path.join(td, "page.svg"); open(html, "w", encoding="utf-8").write("<html>404</html>")
             for icon in (bad, html, os.path.join(td, "nope.svg")):
                 spec = {"elements": [{"id": "b", "type": "box", "label": "x", "icon": icon, "x": 0, "y": 0}]}
                 with self.assertRaises(SystemExit) as cm:
@@ -213,7 +213,7 @@ class TestSmallBugs(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             out = os.path.join(td, "o.excalidraw")
             run("build.py", os.path.join(EXAMPLES, "payment.spec.json"), out)
-            doc = json.load(open(out)); before = {e["id"]: e["versionNonce"] for e in doc["elements"]}
+            doc = json.load(open(out, encoding="utf-8")); before = {e["id"]: e["versionNonce"] for e in doc["elements"]}
             fix.fix(doc)
             for e in doc["elements"]:
                 self.assertNotEqual(e["versionNonce"], before[e["id"]])
@@ -226,7 +226,7 @@ class TestSmallBugs(unittest.TestCase):
                              {"id": "r", "type": "region", "x": -40, "y": -40, "w": 600, "h": 300},
                              {"id": "c", "type": "box", "label": "c", "x": 20, "y": 150, "w": 200, "h": 60}]}
         with tempfile.TemporaryDirectory() as td:
-            p = os.path.join(td, "o.excalidraw"); json.dump(build.Builder(spec).build(), open(p, "w"))
+            p = os.path.join(td, "o.excalidraw"); json.dump(build.Builder(spec).build(), open(p, "w", encoding="utf-8"))
             hits = [f for f in lint.lint(p) if f["rule"] == "box-overlap"]
             self.assertEqual([h["id"] for h in hits], ["a"], "a/b overlap; c inside region is nesting, not overlap")
 
@@ -276,7 +276,7 @@ class TestIconContrast(unittest.TestCase):
     def test_builder_darkens_and_keep_overrides(self):
         with tempfile.TemporaryDirectory() as td:
             icon = os.path.join(td, "vault.svg")
-            open(icon, "w").write('<svg fill="#FFEC6E" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h24v24z"/></svg>')
+            open(icon, "w", encoding="utf-8").write('<svg fill="#FFEC6E" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h24v24z"/></svg>')
             base = {"id": "b", "type": "box", "label": "vault", "icon": icon, "x": 0, "y": 0, "fill": "purple"}
             import base64
             def fill_of(spec):
@@ -291,7 +291,7 @@ class TestIconContrast(unittest.TestCase):
             self.assertEqual(fill, "#123456")
             # lint sees the low-contrast icon in a file built with keep
             doc = build.Builder({"elements": [dict(base, icon_color="keep")]}).build()
-            p = os.path.join(td, "o.excalidraw"); json.dump(doc, open(p, "w"))
+            p = os.path.join(td, "o.excalidraw"); json.dump(doc, open(p, "w", encoding="utf-8"))
             self.assertIn("icon-low-contrast", {f["rule"] for f in lint.lint(p)})
 
 
@@ -309,10 +309,10 @@ class TestSplitBranchArrows(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             p = os.path.join(td, "o.excalidraw")
             first["endArrowhead"] = None                      # first half of a branch: fine
-            json.dump(doc, open(p, "w"))
+            json.dump(doc, open(p, "w", encoding="utf-8"))
             self.assertEqual([f for f in lint.lint(p) if f["rule"] == "no-arrowhead"], [])
             last["endArrowhead"] = None                       # a real headless connector: flagged
-            json.dump(doc, open(p, "w"))
+            json.dump(doc, open(p, "w", encoding="utf-8"))
             hits = [f for f in lint.lint(p) if f["rule"] == "no-arrowhead"]
             self.assertEqual([h["id"] for h in hits], [last["id"]])
 
@@ -336,7 +336,7 @@ class TestStyleProfiles(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             style = {"name": "t", "font": 6, "arrowhead": "triangle", "roughness": 1, "stroke": "#333333",
                      "roundness": {"type": 3}, "fills": {"blue": "#dbe4ff"}, "font_sizes": [14, 18, 24]}
-            sp = os.path.join(td, "style.json"); json.dump(style, open(sp, "w"))
+            sp = os.path.join(td, "style.json"); json.dump(style, open(sp, "w", encoding="utf-8"))
             spec = {"style": sp, "elements": [{"id": "a", "type": "box", "label": "a", "x": 0, "y": 0, "fill": "blue"},
                                               {"id": "b", "type": "box", "label": "b", "x": 400, "y": 0, "fill": "blue"},
                                               {"type": "arrow", "from": "a", "to": "b"}]}
@@ -347,7 +347,7 @@ class TestStyleProfiles(unittest.TestCase):
             self.assertEqual(box["backgroundColor"], "#dbe4ff"); self.assertEqual(box["roughness"], 1)
             self.assertEqual(box["roundness"], {"type": 3}); self.assertEqual(box["strokeColor"], "#333333")
             self.assertEqual(txt["fontFamily"], 6); self.assertEqual(arr["endArrowhead"], "triangle")
-            p = os.path.join(td, "o.excalidraw"); json.dump(doc, open(p, "w"))
+            p = os.path.join(td, "o.excalidraw"); json.dump(doc, open(p, "w", encoding="utf-8"))
             self.assertEqual([f for f in lint.lint(p) if f["fixable"]], [], "clean under its own style")
             # CLI: --style on lint, and without it the house style complains
             self.assertEqual(run("lint.py", p, "--style", sp).returncode, 0)
@@ -370,7 +370,7 @@ class TestExport(unittest.TestCase):
             out = os.path.join(td, "p.svg")
             r = run("export.py", os.path.join(EXAMPLES, "payment.excalidraw"), out, "--no-fonts")
             self.assertEqual(r.returncode, 0, r.stderr)
-            self.assertTrue(open(out).read().startswith("<svg"))
+            self.assertTrue(open(out, encoding="utf-8").read().startswith("<svg"))
 
     def test_build_svg_flag(self):
         with tempfile.TemporaryDirectory() as td:
@@ -386,7 +386,7 @@ class TestPreview(unittest.TestCase):
             out = os.path.join(td, "p.svg")
             r = run("preview.py", os.path.join(EXAMPLES, "payment.excalidraw"), out, "--square")
             self.assertEqual(r.returncode, 0, r.stderr)
-            svg = open(out).read()
+            svg = open(out, encoding="utf-8").read()
             self.assertTrue(svg.startswith("<svg"))
             self.assertIn("textLength", svg)
 

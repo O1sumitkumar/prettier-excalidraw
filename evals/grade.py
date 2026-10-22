@@ -6,7 +6,7 @@ from exstyle import bbox, inside, overlap, area, is_light
 from lint import icon_groups
 
 def load(p):
-    d = json.load(open(p)); return d, [e for e in d["elements"] if not e.get("isDeleted")]
+    d = json.load(open(p, encoding="utf-8")); return d, [e for e in d["elements"] if not e.get("isDeleted")]
 
 def texts(els): return [e["text"].lower() for e in els if e["type"] == "text"]
 def has_label(els, *words):
@@ -152,7 +152,7 @@ if __name__ == "__main__":
             n = sum(e["passed"] for e in exp)
             json.dump({"expectations": exp, "summary": {"passed": n, "failed": len(exp) - n, "total": len(exp),
                        "pass_rate": round(n / len(exp), 3) if exp else 0.0}},
-                      open(os.path.join(rd, "grading.json"), "w"), indent=1)
+                      open(os.path.join(rd, "grading.json"), "w", encoding="utf-8"), indent=1)
             print(f"{name:28s} {run:14s} {n}/{len(exp)}")
             for e in exp:
                 if not e["passed"]: print(f"     FAIL {e['text']}  -- {e['evidence'][:120]}")

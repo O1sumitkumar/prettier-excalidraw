@@ -20,7 +20,7 @@ from exstyle import (ARROWHEADS, FONT_IDS, FONT_NAMES, FONT_SIZES, ICON_MIN_CONT
 
 
 def load(path):
-    d = json.load(open(path))
+    d = json.load(open(path, encoding="utf-8"))
     return d, [e for e in d["elements"] if not e.get("isDeleted")]
 
 

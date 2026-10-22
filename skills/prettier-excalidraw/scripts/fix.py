@@ -120,9 +120,9 @@ def main():
     style_from_argv(args)
     font = args[args.index("--font") + 1] if "--font" in args else None
     head = args[args.index("--arrowhead") + 1] if "--arrowhead" in args else None
-    doc = json.load(open(args[0]))
+    doc = json.load(open(args[0], encoding="utf-8"))
     n = fix(doc, font, head)
-    json.dump(doc, open(args[1], "w"), indent=1)
+    json.dump(doc, open(args[1], "w", encoding="utf-8"), indent=1)
     print(f"wrote {args[1]}: {n} changes")
     for b in fix.big_changes:
         print(f"  check label: {b} - a big size change can collide with neighbours")

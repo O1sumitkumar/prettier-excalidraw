@@ -485,10 +485,10 @@ def main():
     if len(args) != 2:
         print(__doc__); sys.exit(2)
     spec_path, out = args
-    spec = json.load(open(spec_path))
+    spec = json.load(open(spec_path, encoding="utf-8"))
     b = Builder(spec, base_dir=os.path.dirname(os.path.abspath(spec_path)))
     doc = b.build()
-    json.dump(doc, open(out, "w"), indent=1)
+    json.dump(doc, open(out, "w", encoding="utf-8"), indent=1)
     for w in b.warnings:
         print("warning:", w)
     print(f"wrote {out}: {len(doc['elements'])} elements, {len(doc['files'])} embedded images")
