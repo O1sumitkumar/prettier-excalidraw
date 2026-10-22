@@ -6,6 +6,7 @@ Public entry point (wired up in #52):
     spec = layout(spec, measure)   # fills in missing x/y; explicit coordinates win
 """
 from .graph import Graph, Node, Edge, Container, from_spec, direction  # noqa: F401
+from .rank import rank  # noqa: F401
 
 
 def layout(spec, measure):

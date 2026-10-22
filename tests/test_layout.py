@@ -6,7 +6,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SCRIPTS = os.path.join(ROOT, "skills", "prettier-excalidraw", "scripts")
 sys.path.insert(0, SCRIPTS)
 
-from layout import from_spec, direction, layout  # noqa: E402
+from layout import from_spec, direction, layout, Graph, Node, Edge, rank  # noqa: E402
 
 
 def measure(it):
@@ -75,9 +75,79 @@ class TestGraphModel(unittest.TestCase):
             layout(SPEC, measure)
 
 
-@unittest.skip("stage 1 (#48) not implemented")
+def _graph(direction="lr"):
+    """An empty Graph for tests that build the model by hand."""
+    return Graph(direction=direction)
+
+
+def _box(g, id_):
+    g.nodes[id_] = Node(id=id_, kind="box", w=240, h=70)
+    g.root.append(id_)
+
+
 class TestRank(unittest.TestCase):
-    pass
+    """Stage 1 (#48): longest-path ranks with deterministic cycle breaking."""
+
+    def _rank(self, edges, nodes=()):
+        """Rank a top-level graph with the given edges and isolated nodes."""
+        g = _graph()
+        for e in nodes:
+            _box(g, e)
+        seen = []
+        for src, dst in edges:
+            for e in (src, dst):
+                if e not in seen:
+                    seen.append(e)
+                    _box(g, e)
+            g.edges.append(Edge(src=src, dst=dst))
+        return rank(g, None)
+
+    def test_chain(self):
+        r = self._rank((("a", "b"), ("b", "c")))
+        self.assertEqual(r, {"a": 0, "b": 1, "c": 2})
+
+    def test_diamond_dag_takes_the_longest_path(self):
+        r = self._rank((("a", "b"), ("a", "c"), ("b", "d"), ("c", "d")))
+        self.assertEqual(r, {"a": 0, "b": 1, "c": 1, "d": 2})
+
+    def test_longest_path_not_shortcut(self):
+        # a -> b -> d and the shortcut a -> d: d ranks 2, not 1
+        r = self._rank((("a", "b"), ("b", "d"), ("a", "d")))
+        self.assertEqual(r["d"], 2)
+
+    def test_cycle_drops_the_back_edge_found_last(self):
+        # a -> b -> c -> a: the DFS finds c -> a as the back edge and drops it
+        r = self._rank((("a", "b"), ("b", "c"), ("c", "a")))
+        self.assertEqual(r, {"a": 0, "b": 1, "c": 2})
+
+    def test_two_cycles_are_both_broken(self):
+        # a -> b -> a and b -> c -> b: the last-seen back edges (c -> b, then
+        # b -> a) are dropped, leaving the chain a -> b -> c
+        r = self._rank((("a", "b"), ("b", "a"), ("b", "c"), ("c", "b")))
+        self.assertEqual(r, {"a": 0, "b": 1, "c": 2})
+
+    def test_disconnected_graph(self):
+        # a -> b, then isolated c, then d -> e
+        r = self._rank((("a", "b"), ("d", "e")), nodes=("c",))
+        self.assertEqual(r, {"a": 0, "b": 1, "c": 0, "d": 0, "e": 1})
+
+    def test_isolated_nodes_rank_zero(self):
+        g = _graph()
+        _box(g, "lonely")
+        self.assertEqual(rank(g, None), {"lonely": 0})
+
+    def test_regions_are_ignored_their_children_ranked(self):
+        g = from_spec(SPEC, measure)
+        # at the root, b -> d lifts to r -> d and e -> r stays: e, r, d
+        self.assertEqual(rank(g, None), {"e": 0, "r": 1, "d": 2})
+        # inside r, a -> b lifts to a -> inner; c is isolated
+        self.assertEqual(rank(g, "r"), {"inner": 1, "a": 0, "c": 0})
+        self.assertEqual(set(g.containers["r"].children), set(rank(g, "r")))
+
+    def test_rank_is_a_function_of_the_spec_alone(self):
+        # same graph twice: identical output (determinism, README rule 4)
+        self.assertEqual(self._rank((("a", "b"), ("b", "c"), ("c", "a"))),
+                         self._rank((("a", "b"), ("b", "c"), ("c", "a"))))
 
 
 @unittest.skip("stage 2 (#49) not implemented")
