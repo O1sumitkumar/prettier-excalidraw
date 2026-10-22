@@ -6,6 +6,11 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Planned
+See [ROADMAP.md](ROADMAP.md).
+
+## [0.4.0] - 2026-10-22
+
 ### Added
 - `build.py`: `diamond` decision nodes and `ellipse` start/end/actor markers with
   bound centred labels, palette fills, and the same arrow bindings / z-order as
@@ -30,9 +35,6 @@ All notable changes to this project are documented here. The format follows
 - `lint.py`: equal-sized tiny cells in a regular row or column on a strip are a
   cell grid, not `box-overlap` collisions; the strip is their z-order parent
   (#54, @dbdefault).
-
-### Planned
-See [ROADMAP.md](ROADMAP.md).
 
 ## [0.3.0] - 2026-10-22
 
