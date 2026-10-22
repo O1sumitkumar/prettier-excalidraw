@@ -19,6 +19,10 @@ All notable changes to this project are documented here. The format follows
   `PRETTIER_EXCALIDRAW_ICONS`; `"icon": "PostgreSQL"` looks a name up by slug and
   `"icon": "auto"` matches the label, leaving the box bare when nothing fits (#20).
 
+- `profile.py`: derive a style profile from any folder of diagrams; `build.py`,
+  `lint.py` and `fix.py` take `--style style.json` (or `PRETTIER_EXCALIDRAW_STYLE`,
+  or `"style"` in the spec) so every default, rule and palette name comes from it (#19).
+
 ### Fixed
 - `lint.py` no longer flags `no-arrowhead` on the first half of a split branch
   arrow (diamond → "yes" circle → target) (#4).

@@ -130,6 +130,20 @@ directly (the finding gives the element id) or tell the user what to change.
 Both scripts take `--font comic|nunito` and `--arrowhead outline|filled` when the user
 prefers the alternative; the default is Comic Shanns and the hollow triangle.
 
+## Using the user's own style
+
+The house style is a default, not a requirement. When the user has diagrams they like
+and wants new ones to match, derive a profile instead of guessing:
+
+```bash
+python3 profile.py ~/diagrams -o style.json     # measures font, sizes, fills, arrows...
+```
+Show them the printed summary (it is their taste being encoded, so they should
+confirm it), then pass `--style style.json` to `build.py`, `lint.py` and `fix.py`, or
+put `"style": "style.json"` in the spec, or set `PRETTIER_EXCALIDRAW_STYLE`. Every
+rule, default and palette name then comes from that file. Derive from diagrams they
+are proud of, not from everything they ever drew.
+
 ## Why these rules (so you can apply them to cases the rules do not cover)
 
 - **Roughness 0 and one font** - sketchiness reads as "draft". These diagrams are

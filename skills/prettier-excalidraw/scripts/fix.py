@@ -3,6 +3,7 @@
 
 Usage:
     python3 fix.py in.excalidraw out.excalidraw [--font comic|nunito] [--arrowhead outline|filled]
+                                                [--style style.json]
 
 Fixes: font family, snapped font sizes, roughness, fill style, rounded
 rectangles, arrowhead type, arrows moved to the end of the z-order, child
@@ -12,7 +13,7 @@ still needs a human (dark fills, icon sizes, unbound arrows).
 Standard library only.
 """
 import json, sys
-from exstyle import ARROWHEADS, CHAR_W, FONT_IDS, FONT_SIZES, LINE_H, area, bbox, inside
+from exstyle import ARROWHEADS, CHAR_W, FONT_IDS, FONT_SIZES, LINE_H, STYLE, area, bbox, inside, style_from_argv
 from lint import icon_groups
 
 
@@ -39,8 +40,9 @@ def remeasure(t, byid):
     t["width"], t["height"] = w, h
 
 
-def fix(doc, font="comic", arrowhead="outline"):
-    want_font, want_head = FONT_IDS[font], ARROWHEADS[arrowhead]
+def fix(doc, font=None, arrowhead=None):
+    want_font = STYLE["font"] if font is None else (font if isinstance(font, int) else FONT_IDS[font])
+    want_head = STYLE["arrowhead"] if arrowhead is None else ARROWHEADS.get(arrowhead, arrowhead)
     els = [e for e in doc["elements"] if not e.get("isDeleted")]
     icons = icon_groups(els)
     byid = {e["id"]: e for e in els}
@@ -49,11 +51,12 @@ def fix(doc, font="comic", arrowhead="outline"):
     for e in els:
         in_icon = any(g in icons for g in e.get("groupIds", []))
         t = e["type"]
-        if t in ("rectangle", "ellipse", "diamond", "arrow", "line", "text") and not in_icon and e.get("roughness"):
-            e["roughness"] = 0; changed += 1
-        if t in ("rectangle", "ellipse", "diamond") and e.get("fillStyle") != "solid":
-            e["fillStyle"] = "solid"; changed += 1
-        if t == "rectangle" and e.get("roundness") is not None and not in_icon:
+        if t in ("rectangle", "ellipse", "diamond", "arrow", "line", "text") and not in_icon \
+           and e.get("roughness", 0) != STYLE["roughness"]:
+            e["roughness"] = STYLE["roughness"]; changed += 1
+        if t in ("rectangle", "ellipse", "diamond") and e.get("fillStyle") != STYLE["fill_style"]:
+            e["fillStyle"] = STYLE["fill_style"]; changed += 1
+        if t == "rectangle" and STYLE["roundness"] is None and e.get("roundness") is not None and not in_icon:
             e["roundness"] = None; changed += 1
         if t == "text":
             before = (e.get("fontFamily"), e.get("fontSize", 20))
@@ -114,8 +117,9 @@ def main():
     args = sys.argv[1:]
     if len(args) < 2:
         print(__doc__); sys.exit(2)
-    font = args[args.index("--font") + 1] if "--font" in args else "comic"
-    head = args[args.index("--arrowhead") + 1] if "--arrowhead" in args else "outline"
+    style_from_argv(args)
+    font = args[args.index("--font") + 1] if "--font" in args else None
+    head = args[args.index("--arrowhead") + 1] if "--arrowhead" in args else None
     doc = json.load(open(args[0]))
     n = fix(doc, font, head)
     json.dump(doc, open(args[1], "w"), indent=1)

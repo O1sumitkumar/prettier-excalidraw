@@ -309,6 +309,45 @@ class TestSplitBranchArrows(unittest.TestCase):
             self.assertEqual([h["id"] for h in hits], [last["id"]])
 
 
+class TestStyleProfiles(unittest.TestCase):
+    def tearDown(self):
+        # restore the house style for the other tests
+        import importlib
+        exstyle.load_style(os.path.join(os.path.dirname(__file__), "house.json")) if os.path.exists(
+            os.path.join(os.path.dirname(__file__), "house.json")) else None
+        importlib.reload(exstyle); importlib.reload(build); importlib.reload(lint); importlib.reload(fix)
+
+    def test_profile_of_examples_matches_house_style(self):
+        import profile as prof
+        p = prof.profile(glob.glob(os.path.join(EXAMPLES, "*.excalidraw")))
+        self.assertEqual(p["font"], 8); self.assertEqual(p["roughness"], 0)
+        self.assertEqual(p["arrowhead"], "triangle_outline"); self.assertIsNone(p["roundness"])
+        self.assertIn("#a5d8ff", p["fills"].values())
+
+    def test_custom_style_flows_through_build_lint_fix(self):
+        with tempfile.TemporaryDirectory() as td:
+            style = {"name": "t", "font": 6, "arrowhead": "triangle", "roughness": 1, "stroke": "#333333",
+                     "roundness": {"type": 3}, "fills": {"blue": "#dbe4ff"}, "font_sizes": [14, 18, 24]}
+            sp = os.path.join(td, "style.json"); json.dump(style, open(sp, "w"))
+            spec = {"style": sp, "elements": [{"id": "a", "type": "box", "label": "a", "x": 0, "y": 0, "fill": "blue"},
+                                              {"id": "b", "type": "box", "label": "b", "x": 400, "y": 0, "fill": "blue"},
+                                              {"type": "arrow", "from": "a", "to": "b"}]}
+            doc = build.Builder(spec, base_dir=td).build()
+            box = next(e for e in doc["elements"] if e["type"] == "rectangle")
+            txt = next(e for e in doc["elements"] if e["type"] == "text")
+            arr = next(e for e in doc["elements"] if e["type"] == "arrow")
+            self.assertEqual(box["backgroundColor"], "#dbe4ff"); self.assertEqual(box["roughness"], 1)
+            self.assertEqual(box["roundness"], {"type": 3}); self.assertEqual(box["strokeColor"], "#333333")
+            self.assertEqual(txt["fontFamily"], 6); self.assertEqual(arr["endArrowhead"], "triangle")
+            p = os.path.join(td, "o.excalidraw"); json.dump(doc, open(p, "w"))
+            self.assertEqual([f for f in lint.lint(p) if f["fixable"]], [], "clean under its own style")
+            # CLI: --style on lint, and without it the house style complains
+            self.assertEqual(run("lint.py", p, "--style", sp).returncode, 0)
+            self.assertEqual(run("lint.py", p).returncode, 1)
+            r = run("fix.py", p, os.path.join(td, "f.excalidraw"), "--style", sp)
+            self.assertIn("0 changes", r.stdout)
+
+
 class TestLintCli(unittest.TestCase):
     def test_allow_manual_exit_code(self):
         ref = os.path.join(EXAMPLES, "layered-architecture.excalidraw")

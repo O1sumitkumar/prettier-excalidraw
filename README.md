@@ -23,7 +23,9 @@ moving anything.
 
 The style was derived by measuring a set of real diagrams (839 elements) rather
 than invented, so the rules have numbers behind them. See
-[the style guide](skills/prettier-excalidraw/references/style-guide.md).
+[the style guide](skills/prettier-excalidraw/references/style-guide.md). Prefer your
+own style? `profile.py` measures a folder of your diagrams and writes a profile the
+scripts use instead.
 
 ## Install
 
@@ -80,6 +82,7 @@ All in `skills/prettier-excalidraw/scripts/`, run from that directory.
 | `lint.py file.excalidraw` | 15 style checks with element ids. `--font nunito`, `--arrowhead filled`, `--json` |
 | `fix.py in out` | Mechanical fixes: font, sizes, roughness, fills, corners, heads, z-order. Never moves anything |
 | `preview.py file out.svg [--square]` | SVG render with exact text widths, for checking layout without Excalidraw |
+| `profile.py folder -o style.json` | Measure your own diagrams and write a style profile; pass `--style style.json` to the other scripts to use it instead of the house style |
 | `export.py file out.png\|out.svg [--scale 2]` | Shareable image with the real fonts embedded; Chrome or macOS quick-look for PNG. `build.py ... --png` does it in one step |
 
 The spec format is documented in

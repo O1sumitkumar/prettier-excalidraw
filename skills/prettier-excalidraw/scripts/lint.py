@@ -3,7 +3,7 @@
 
 Usage:
     python3 lint.py diagram.excalidraw [--font comic|nunito] [--arrowhead outline|filled]
-                                       [--json] [--allow-manual]
+                                       [--json] [--allow-manual] [--style style.json]
 
 Exit code 0 = clean, 1 = violations found. With --allow-manual, findings that need a
 human (marked "(manual)") are still printed but do not affect the exit code, which is
@@ -15,8 +15,8 @@ Standard library only.
 """
 import json, sys
 from collections import Counter
-from exstyle import (ARROWHEADS, FONT_IDS, FONT_NAMES, FONT_SIZES, ICON_MIN_CONTRAST, area, bbox, contrast,
-                     inside, is_light, overlap)
+from exstyle import (ARROWHEADS, FONT_IDS, FONT_NAMES, FONT_SIZES, ICON_MIN_CONTRAST, STYLE, area, bbox, contrast,
+                     inside, is_light, overlap, style_from_argv)
 
 
 def load(path):
@@ -33,10 +33,11 @@ def icon_groups(els):
     return {g for g, ms in members.items() if len(ms) >= 3 and not any(m["type"] == "text" for m in ms)}
 
 
-def lint(path, font="comic", arrowhead="outline"):
+def lint(path, font=None, arrowhead=None):
     d, els = load(path)
-    want_font = FONT_IDS[font]
-    want_head = ARROWHEADS[arrowhead]
+    want_font = STYLE["font"] if font is None else (font if isinstance(font, int) else FONT_IDS[font])
+    want_head = STYLE["arrowhead"] if arrowhead is None else ARROWHEADS.get(arrowhead, arrowhead)
+    want_rough = STYLE["roughness"]
     icons = icon_groups(els)
     idx = {e["id"]: i for i, e in enumerate(els)}
     byid = {e["id"]: e for e in els}
@@ -56,12 +57,12 @@ def lint(path, font="comic", arrowhead="outline"):
         t = e["type"]
         in_icon = any(g in icons for g in e.get("groupIds", []))
         if t in ("rectangle", "ellipse", "diamond", "arrow", "line", "text") and not in_icon:
-            if e.get("roughness", 0) != 0:
-                add("roughness", e, f"roughness={e['roughness']} (want 0, architect)")
+            if e.get("roughness", 0) != want_rough:
+                add("roughness", e, f"roughness={e['roughness']} (want {want_rough})")
         if t in ("rectangle", "ellipse", "diamond"):
-            if e.get("fillStyle") not in (None, "solid"):
-                add("fill-style", e, f"fillStyle={e['fillStyle']} (want solid)")
-            if t == "rectangle" and e.get("roundness") is not None and not in_icon:
+            if e.get("fillStyle") not in (None, STYLE["fill_style"]):
+                add("fill-style", e, f"fillStyle={e['fillStyle']} (want {STYLE['fill_style']})")
+            if t == "rectangle" and STYLE["roundness"] is None and e.get("roundness") is not None and not in_icon:
                 add("rounded-corners", e, "rectangle has rounded corners (want sharp)")
             has_text = any(b.get("type") == "text" for b in e.get("boundElements") or [])
             if has_text and not is_light(e.get("backgroundColor")):
@@ -131,7 +132,7 @@ def lint(path, font="comic", arrowhead="outline"):
     # directly under a non-store box it is not connected to. Readers assume the box
     # above owns the store before they read any arrow. Peers stacked in a column
     # (two services, two stores) are fine, so the rule is deliberately narrow.
-    STORE_FILLS = {"#ffc9c9"}
+    STORE_FILLS = set(STYLE["store_fills"])
     byid_box = {e["id"]: e for e in els if e["type"] == "rectangle"
                 and any(b.get("type") == "text" for b in e.get("boundElements") or [])}
     links = {}
@@ -243,8 +244,9 @@ def main():
     args = sys.argv[1:]
     if not args:
         print(__doc__); sys.exit(2)
-    font = args[args.index("--font") + 1] if "--font" in args else "comic"
-    head = args[args.index("--arrowhead") + 1] if "--arrowhead" in args else "outline"
+    style_from_argv(args)
+    font = args[args.index("--font") + 1] if "--font" in args else None
+    head = args[args.index("--arrowhead") + 1] if "--arrowhead" in args else None
     as_json = "--json" in args
     allow_manual = "--allow-manual" in args
     path = args[0]

@@ -7,6 +7,7 @@ origin top-left, y grows downward. Lay things out on a 20 px grid.
 {
   "font": "comic",          // "comic" (Comic Shanns, default) | "nunito"
   "arrowhead": "outline",   // "outline" (hollow triangle, default) | "filled"
+  "style": "style.json",    // optional: a style profile from profile.py (or --style on the CLI)
   "icons_dir": "icons",     // optional: folder(s) with the user's own icons, relative to the spec
   "elements": [ ... ]       // in any order; the builder sorts the z-order itself
 }
@@ -121,3 +122,12 @@ once and cached), rasterised with Chrome when installed or quick-look on macOS.
   It prints harmless CVDisplayLink warnings.
 - macOS quick-look, no Chrome: `python3 preview.py d.excalidraw d.svg --square && qlmanage -t -s 2400 -o . d.svg`
   (`--square` pads to a square; without it quick-look crops wide diagrams).
+
+## Style profiles
+`profile.py <folder> -o style.json` measures a set of diagrams and writes a profile:
+font id, font sizes, roughness, stroke colour and width, corners, fill style,
+arrowhead, elbow routing, canvas colour, the component fills and region tints with
+names, arrow colours, and which fills mean "store". `build.py`, `lint.py` and `fix.py`
+take `--style style.json` (or `PRETTIER_EXCALIDRAW_STYLE`); a spec can name it with
+`"style"`. Fill names in a spec (`"fill": "blue"`) resolve through the profile, so a
+profile may rename or replace the palette. Hand-editing the JSON is fine.

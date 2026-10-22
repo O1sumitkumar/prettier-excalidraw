@@ -6,7 +6,7 @@ FONT_NAMES = {8: "Comic Shanns", 6: "Nunito", 1: "Virgil", 2: "Helvetica", 3: "C
 # average glyph width as a fraction of fontSize (measured from reference diagrams)
 CHAR_W = {8: 0.55, 6: 0.49}
 LINE_H = 1.25
-FONT_SIZES = (16, 20, 28)
+FONT_SIZES = [16, 20, 28]   # mutable: a style profile may replace the set
 
 STROKE = "#1e1e1e"
 ARROW_COLORS = {"black": "#1e1e1e", "red": "#e03131", "green": "#2f9e44", "blue": "#1971c2"}
@@ -24,7 +24,59 @@ TINTS = {
 }
 LIGHT_FILLS = set(FILLS.values()) | set(TINTS.values()) | {"#fff", "#ffffff", "transparent"}
 
-ARROWHEADS = {"outline": "triangle_outline", "filled": "triangle"}
+ARROWHEADS = {"outline": "triangle_outline", "filled": "triangle", "arrow": "arrow", "bar": "bar",
+              "dot": "dot", "circle": "circle", "none": None}
+
+# The active style. Scripts read these at call time, so a loaded profile applies
+# everywhere. Defaults are the measured house style.
+STYLE = {
+    "name": "house",
+    "font": 8,                      # fontFamily id (8 Comic Shanns, 6 Nunito, 2 Helvetica, 3 Cascadia, 5 Excalifont)
+    "font_sizes": FONT_SIZES,       # same list object
+    "roughness": 0,
+    "stroke": STROKE,
+    "stroke_width": 2,
+    "roundness": None,              # None = sharp corners, or {"type": 3} for rounded
+    "fill_style": "solid",
+    "arrowhead": "triangle_outline",
+    "elbowed": True,
+    "canvas": "#ffffff",
+    "fills": FILLS,                 # same dict objects, updated in place by load_style
+    "tints": TINTS,
+    "arrow_colors": ARROW_COLORS,
+    "store_fills": ["#ffc9c9"],
+}
+
+
+def size(which):
+    """Default font sizes from the active profile: 'small', 'default', 'title'."""
+    return {"small": FONT_SIZES[0], "default": FONT_SIZES[len(FONT_SIZES) // 2], "title": FONT_SIZES[-1]}[which]
+
+
+def load_style(path):
+    """Apply a style.json (written by profile.py or by hand) on top of the defaults."""
+    import json
+    d = json.load(open(path))
+    for k in ("name", "font", "roughness", "stroke", "stroke_width", "roundness", "fill_style",
+              "arrowhead", "elbowed", "canvas", "store_fills"):
+        if k in d:
+            STYLE[k] = d[k]
+    if "font_sizes" in d:
+        FONT_SIZES[:] = list(d["font_sizes"])
+    for key, target in (("fills", FILLS), ("tints", TINTS), ("arrow_colors", ARROW_COLORS)):
+        if key in d:
+            target.clear(); target.update(d[key])
+    LIGHT_FILLS.clear(); LIGHT_FILLS.update(set(FILLS.values()) | set(TINTS.values()) | {"#fff", "#ffffff", "transparent"})
+    return STYLE
+
+
+def style_from_argv(argv):
+    """Honour `--style path` anywhere on a command line (and PRETTIER_EXCALIDRAW_STYLE)."""
+    import os
+    path = argv[argv.index("--style") + 1] if "--style" in argv else os.environ.get("PRETTIER_EXCALIDRAW_STYLE")
+    if path:
+        load_style(path)
+    return path
 
 
 def is_light(hexcolor: str) -> bool:

@@ -2,7 +2,7 @@
 """Build a .excalidraw file from a small JSON spec, in the prettier-excalidraw style.
 
 Usage:
-    python3 build.py spec.json out.excalidraw [--png] [--svg]
+    python3 build.py spec.json out.excalidraw [--png] [--svg] [--style style.json]
 
 --png / --svg also write out.png / out.svg next to the diagram (see export.py).
 
@@ -15,8 +15,8 @@ Spec format: see references/spec-format.md (also summarised in SKILL.md).
 Standard library only.
 """
 import base64, hashlib, json, math, os, random, struct, sys, time
-from exstyle import (ARROW_COLORS, ARROWHEADS, CHAR_W, FILLS, FONT_IDS, ICON_MIN_CONTRAST, LINE_H, STROKE, TINTS,
-                     area, contrast, darken_to_contrast)
+from exstyle import (ARROW_COLORS, ARROWHEADS, CHAR_W, FILLS, FONT_IDS, ICON_MIN_CONTRAST, LINE_H, STYLE, TINTS,
+                     area, contrast, darken_to_contrast, load_style, size, style_from_argv)
 
 _ALPHABET = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
@@ -36,8 +36,8 @@ def _base(etype, x, y, w, h, **kw):
     e = {
         "id": kw.pop("id", None) or _id(), "type": etype, "x": float(x), "y": float(y),
         "width": float(w), "height": float(h), "angle": 0,
-        "strokeColor": STROKE, "backgroundColor": "transparent", "fillStyle": "solid",
-        "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0, "opacity": 100,
+        "strokeColor": STYLE["stroke"], "backgroundColor": "transparent", "fillStyle": STYLE["fill_style"],
+        "strokeWidth": STYLE["stroke_width"], "strokeStyle": "solid", "roughness": STYLE["roughness"], "opacity": 100,
         "groupIds": [], "frameId": None, "roundness": None, "seed": _seed(), "version": 1,
         "versionNonce": _seed(), "isDeleted": False, "boundElements": [], "updated": _now,
         "link": None, "locked": False,
@@ -57,8 +57,12 @@ class Builder:
     def __init__(self, spec, base_dir="."):
         self.spec = spec
         self.base_dir = base_dir
-        self.font = FONT_IDS.get(spec.get("font", "comic"), 8)
-        self.head = ARROWHEADS.get(spec.get("arrowhead", "outline"), "triangle_outline")
+        if spec.get("style"):
+            load_style(spec["style"] if os.path.isabs(spec["style"]) else os.path.join(base_dir, spec["style"]))
+        f = spec.get("font", STYLE["font"])
+        self.font = f if isinstance(f, int) else FONT_IDS.get(f, STYLE["font"])
+        h = spec.get("arrowhead", STYLE["arrowhead"])
+        self.head = ARROWHEADS.get(h, h)      # a name like "outline", or a raw Excalidraw value
         self.files = {}
         self.layers = {"region": [], "box": [], "image": [], "text": [], "arrow": []}
         self.by_id = {}          # spec id -> excalidraw element (the box/region/image)
@@ -76,12 +80,13 @@ class Builder:
     def add_region(self, it):
         fill = TINTS.get(it.get("tint", "none"), it.get("tint", "transparent"))
         e = _base("rectangle", it["x"], it["y"], it["w"], it["h"], id=it.get("id"),
-                  backgroundColor=fill, strokeWidth=it.get("stroke_width", 2))
+                  backgroundColor=fill, strokeWidth=it.get("stroke_width", STYLE["stroke_width"]),
+                  roundness=STYLE["roundness"])
         if it.get("dotted"):
             e["strokeStyle"] = "dotted"; e["opacity"] = 60; e["strokeWidth"] = 1
         self._register(it, e, "region")
         if it.get("title"):
-            size = it.get("size", 20)
+            size = it.get("size", size("default"))
             tw, th = text_size(it["title"], self.font, size)
             pos = it.get("title_pos", "top-left")
             pad = 16
@@ -97,7 +102,7 @@ class Builder:
             self._free_text(it["title"], tx, ty, size, "center" if "center" in pos else "left")
         if it.get("subtitle"):
             # secondary note in the opposite top corner from the title, size 16
-            size = it.get("subtitle_size", 16)
+            size = it.get("subtitle_size", size("small"))
             tw, th = text_size(it["subtitle"], self.font, size)
             pad = 16
             right = it.get("title_pos", "top-left") != "top-right"
@@ -127,7 +132,7 @@ class Builder:
     def add_box(self, it):
         it = dict(it, icon=self._resolve_icon(it))
         fill = FILLS.get(it.get("fill", "blue"), it.get("fill", "#a5d8ff"))
-        size = it.get("size", 20)
+        size = it.get("size", size("default"))
         w, h = it.get("w", 240), it.get("h", 70)
         tw, th = text_size(it.get("label", ""), self.font, size)
         if th + 16 > h:
@@ -154,7 +159,7 @@ class Builder:
                                  + (" beside icon" if icon_h else ""))
             w = new_w
         e = _base("rectangle", it["x"], it["y"], w, h, id=it.get("id"), backgroundColor=fill,
-                  strokeWidth=it.get("stroke_width", 2))
+                  strokeWidth=it.get("stroke_width", STYLE["stroke_width"]), roundness=STYLE["roundness"])
         if it.get("dashed"):
             e["strokeStyle"] = "dashed"
         self._register(it, e, "box")
@@ -176,21 +181,21 @@ class Builder:
         e = self._image(src, it["x"], it["y"], it.get("w"), it.get("h", 120), spec_id=it.get("id"),
                         icon_color=it.get("icon_color"))
         if it.get("label"):
-            size = it.get("size", 20)
+            size = it.get("size", size("default"))
             tw, th = text_size(it["label"], self.font, size)
             self._free_text(it["label"], e["x"] + (e["width"] - tw) / 2, e["y"] + e["height"] + 8, size, "center")
         self._register(it, e, None)
 
     def add_text(self, it):
-        size = it.get("size", 20)
-        color = ARROW_COLORS.get(it.get("color", "black"), it.get("color", STROKE))
+        size = it.get("size", size("default"))
+        color = ARROW_COLORS.get(it.get("color", "black"), it.get("color", STYLE["stroke"]))
         self._free_text(it["text"], it["x"], it["y"], size, it.get("align", "left"), color=color)
 
     def add_arrow(self, it):
         src, dst = self.by_id.get(it["from"]), self.by_id.get(it["to"])
         if not src or not dst:
             raise SystemExit(f"arrow references unknown id: {it['from']} / {it['to']}")
-        color = ARROW_COLORS.get(it.get("color", "black"), it.get("color", STROKE))
+        color = ARROW_COLORS.get(it.get("color", "black"), it.get("color", STYLE["stroke"]))
         s_side, d_side = self._pick_sides(src, dst, it.get("from_side"), it.get("to_side"))
         gap = 5
         p0 = self._anchor(src, s_side, gap, it.get("from_offset", 0))
@@ -199,12 +204,12 @@ class Builder:
         xs = [p[0] for p in pts]; ys = [p[1] for p in pts]
         rel = [[p[0] - pts[0][0], p[1] - pts[0][1]] for p in pts]
         e = _base("arrow", pts[0][0], pts[0][1], max(xs) - min(xs), max(ys) - min(ys),
-                  strokeColor=color, strokeWidth=it.get("stroke_width", 2), points=rel,
+                  strokeColor=color, strokeWidth=it.get("stroke_width", STYLE["stroke_width"]), points=rel,
                   lastCommittedPoint=None,
                   startBinding=self._binding(src, s_side, gap),
                   endBinding=self._binding(dst, d_side, gap),
                   startArrowhead=self.head if it.get("bidirectional") else None,
-                  endArrowhead=self.head, elbowed=True, fixedSegments=None,
+                  endArrowhead=self.head, elbowed=STYLE["elbowed"], fixedSegments=None,
                   startIsSpecial=None, endIsSpecial=None)
         if it.get("dashed"):
             e["strokeStyle"] = "dashed"
@@ -212,7 +217,7 @@ class Builder:
         dst["boundElements"].append({"id": e["id"], "type": "arrow"})
         self.layers["arrow"].append(e)
         if it.get("label"):
-            size = it.get("size", 16)
+            size = it.get("size", size("small"))
             tw, th = text_size(it["label"], self.font, size)
             (mx, my), vertical = self._label_anchor(pts, it.get("label_at", "mid"))
             if vertical:
@@ -227,7 +232,8 @@ class Builder:
         if layer:
             self.layers[layer].append(e)
 
-    def _free_text(self, text, x, y, size, align, color=STROKE):
+    def _free_text(self, text, x, y, size, align, color=None):
+        color = color or STYLE["stroke"]
         tw, th = text_size(text, self.font, size)
         t = _base("text", x, y, tw, th, strokeColor=color, text=text, originalText=text, fontSize=size,
                   fontFamily=self.font, textAlign=align, verticalAlign="top", containerId=None,
@@ -358,7 +364,7 @@ class Builder:
         return {"type": "excalidraw", "version": 2, "source": "prettier-excalidraw",
                 "elements": ordered,
                 "appState": {"gridSize": 20, "gridStep": 5, "gridModeEnabled": False,
-                             "viewBackgroundColor": "#ffffff", "lockedMultiSelections": {}},
+                             "viewBackgroundColor": STYLE["canvas"], "lockedMultiSelections": {}},
                 "files": self.files}
 
 
@@ -469,8 +475,10 @@ def _image_dims(data, ext):
 
 
 def main():
-    flags = {a for a in sys.argv[1:] if a.startswith("--")}
-    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    style_from_argv(sys.argv)
+    argv = [a for i, a in enumerate(sys.argv[1:]) if a != "--style" and sys.argv[1:][i - 1] != "--style"]
+    flags = {a for a in argv if a.startswith("--")}
+    args = [a for a in argv if not a.startswith("--")]
     if len(args) != 2:
         print(__doc__); sys.exit(2)
     spec_path, out = args

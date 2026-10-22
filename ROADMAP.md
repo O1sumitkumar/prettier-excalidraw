@@ -95,7 +95,7 @@ contrast against the box fill (the lint already knows how to measure luminance).
 
 ## 5. Style as data
 
-### 5.1 Style profiles: derive a style from someone's own diagrams  (M)
+### 5.1 Style profiles: derive a style from someone's own diagrams  (M) — done in `profile.py`
 **What.** `profile.py <folder of .excalidraw>` measures font, roughness, arrowheads,
 fills, sizes, icon ratios and z-order habits and writes a `style.json`; `build.py`,
 `lint.py`, `fix.py` take `--style style.json`.
