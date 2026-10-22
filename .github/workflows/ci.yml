@@ -4,12 +4,16 @@ on:
   push:
     branches: [main]
   pull_request:
+    # Explicit so fork PRs also trigger checks (default behavior, but documented).
+    branches: [main]
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
+        os: [ubuntu-latest, windows-latest]
         python-version: ["3.10", "3.12"]
     steps:
       - uses: actions/checkout@v4
@@ -22,6 +26,8 @@ jobs:
         working-directory: skills/prettier-excalidraw/scripts
         # generated examples must be fully clean; the hand-drawn reference diagram may
         # carry manual findings (they are the point of keeping it), so those only warn
+        # Use bash shell so the loop works on Windows runners as well.
+        shell: bash
         run: |
           for f in ../assets/examples/*.excalidraw; do
             case "$f" in
