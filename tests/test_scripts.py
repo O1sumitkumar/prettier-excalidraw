@@ -194,6 +194,48 @@ class TestLintAndFix(unittest.TestCase):
         self.assertTrue(all(e["fontFamily"] == 6 for e in doc["elements"] if e["type"] == "text"))
 
 
+class TestBuildImageChecks(unittest.TestCase):
+    def build_with(self, name, data, item_type="box"):
+        with tempfile.TemporaryDirectory() as td:
+            with open(os.path.join(td, name), "wb") as f:
+                f.write(data)
+            if item_type == "box":
+                item = {"id": "db", "type": "box", "label": "DB", "icon": name, "x": 0, "y": 0}
+            else:
+                item = {"id": "logo", "type": "image", "src": name, "x": 0, "y": 0}
+            return build.Builder({"elements": [item]}, base_dir=td).build()
+
+    def assert_refused(self, name, data, needle, item_type="box", owner="box db"):
+        with self.assertRaises(SystemExit) as cm:
+            self.build_with(name, data, item_type)
+        msg = str(cm.exception.code)
+        self.assertIn(owner, msg)
+        self.assertIn(name, msg)
+        self.assertIn(needle, msg)
+
+    def test_refuses_empty_icon(self):
+        self.assert_refused("missing.svg", b"", "is empty")
+
+    def test_refuses_html_saved_as_svg(self):
+        self.assert_refused("nope.svg", b"<!DOCTYPE html><html><body>Not Found</body></html>", "not an SVG")
+
+    def test_refuses_wrong_png_and_jpeg_bytes(self):
+        self.assert_refused("logo.png", b"<svg/>", "not a PNG", item_type="image", owner="image logo")
+        self.assert_refused("logo.jpg", b"GIF89a", "not a JPEG", item_type="image", owner="image logo")
+
+    def test_accepts_svg_with_xml_declaration_and_bom(self):
+        svg = b'\xef\xbb\xbf<?xml version="1.0"?>\n<svg xmlns="http://www.w3.org/2000/svg"/>'
+        doc = self.build_with("ok.svg", svg)
+        self.assertEqual(len(doc["files"]), 1)
+
+    def test_accepts_png_and_jpeg(self):
+        png = b"\x89PNG\r\n\x1a\n" + b"\x00\x00\x00\rIHDR" + (10).to_bytes(4, "big") + (5).to_bytes(4, "big")
+        doc = self.build_with("ok.png", png, item_type="image")
+        image = next(e for e in doc["elements"] if e["type"] == "image")
+        self.assertAlmostEqual(image["width"], 240.0)
+        self.assertEqual(len(self.build_with("ok.jpg", b"\xff\xd8\xff\xe0", item_type="image")["files"]), 1)
+
+
 class TestLintCli(unittest.TestCase):
     def test_allow_manual_exit_code(self):
         ref = os.path.join(EXAMPLES, "layered-architecture.excalidraw")
