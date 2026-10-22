@@ -6,7 +6,9 @@ one font, one arrow style, a small palette of light fills that mean something,
 regions that contain their children, logos sized to their boxes, and arrows that
 are never hidden behind a box.
 
-![platform diagram](skills/prettier-excalidraw/assets/examples/platform.png)
+![the same spec built with default Excalidraw settings (left) and with prettier-excalidraw (right)](docs/before-after.png)
+
+*The same spec, built with default Excalidraw settings (left) and with the skill (right).*
 
 Ask for a diagram in plain language and get a `.excalidraw` file that opens in
 [excalidraw.com](https://excalidraw.com), Obsidian or VS Code and is already
@@ -103,6 +105,8 @@ example:
 ```
 
 ## Examples
+
+![platform diagram](skills/prettier-excalidraw/assets/examples/platform.png)
 
 | File | Shows |
 |---|---|
