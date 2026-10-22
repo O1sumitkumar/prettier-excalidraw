@@ -12,6 +12,8 @@ See [ROADMAP.md](ROADMAP.md).
 ## [0.3.0] - 2026-10-22
 
 ### Added
+- `build.py`: `note` element - lightgrey annotation box with left-aligned bound text
+  (stroke 1, padding 12); `lint.py` ignores notes for `misleading-proximity` (#37).
 - `export.py`: SVG or PNG export of any diagram with the real fonts embedded,
   rasterised by Chrome or macOS quick-look; `build.py --png` / `--svg` write the
   image next to the `.excalidraw` file (roadmap 1.1, #15).

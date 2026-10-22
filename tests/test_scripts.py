@@ -194,6 +194,73 @@ class TestLintAndFix(unittest.TestCase):
         self.assertTrue(all(e["fontFamily"] == 6 for e in doc["elements"] if e["type"] == "text"))
 
 
+class TestNoteElement(unittest.TestCase):
+    """Spec `note` element: lightgrey annotation box with bound left-aligned text (#37)."""
+
+    def test_note_builds_bound_text_and_avoids_lint_false_positives(self):
+        spec = {
+            "elements": [
+                {"id": "svc", "type": "box", "label": "api", "x": 0, "y": 0, "w": 200, "h": 60},
+                {"id": "store", "type": "box", "label": "cache", "fill": "red", "x": 0, "y": 200, "w": 200, "h": 60},
+                {"type": "arrow", "from": "svc", "to": "store"},
+                {
+                    "id": "n1",
+                    "type": "note",
+                    "text": "connects with external MCP server\ncollect data periodically",
+                    "x": 40,
+                    "y": 80,
+                    "w": 400,
+                },
+            ]
+        }
+        doc = build.Builder(spec).build()
+        note = next(e for e in doc["elements"] if e["id"] == "n1")
+        self.assertEqual(note["type"], "rectangle")
+        self.assertEqual(note["backgroundColor"], exstyle.FILLS["lightgrey"])
+        self.assertEqual(note["strokeWidth"], 1)
+        bound = next(e for e in doc["elements"] if e.get("containerId") == "n1")
+        self.assertEqual(bound["text"], "connects with external MCP server\ncollect data periodically")
+        self.assertEqual(bound["textAlign"], "left")
+        self.assertEqual(bound["fontSize"], exstyle.size("small"))
+        # height comes from the text plus 12 px padding on each side
+        tw, th = build.text_size(bound["text"], 8, bound["fontSize"])
+        self.assertAlmostEqual(note["height"], th + 2 * 12, places=3)
+        self.assertEqual(note["width"], 400)
+        # optional w defaults to text width + padding on both sides
+        bare = build.Builder({"elements": [{"type": "note", "text": "short", "x": 0, "y": 0}]}).build()
+        n2 = next(e for e in bare["elements"] if e["type"] == "rectangle")
+        t2 = next(e for e in bare["elements"] if e["type"] == "text")
+        self.assertAlmostEqual(n2["width"], t2["width"] + 2 * 12, places=3)
+        # note sits in the box layer (before free text / arrows) with bound label after it
+        ids = [e["id"] for e in doc["elements"]]
+        self.assertLess(ids.index("n1"), ids.index(bound["id"]))
+        arrow = next(e for e in doc["elements"] if e["type"] == "arrow")
+        self.assertGreater(ids.index(arrow["id"]), ids.index("n1"))
+        with tempfile.TemporaryDirectory() as td:
+            p = os.path.join(td, "o.excalidraw")
+            json.dump(doc, open(p, "w", encoding="utf-8"))
+            rules = {f["rule"] for f in lint.lint(p)}
+            self.assertNotIn("text-over-box", rules)
+            self.assertNotIn("misleading-proximity", rules)
+
+    def test_note_is_ignored_by_misleading_proximity(self):
+        # a red store under a note must not be flagged; notes are annotations, not owners
+        spec = {
+            "elements": [
+                {"id": "n", "type": "note", "text": "aside", "x": 0, "y": 0, "w": 200},
+                {"id": "store", "type": "box", "label": "cache", "fill": "red", "x": 0, "y": 120, "w": 200, "h": 60},
+                {"id": "owner", "type": "box", "label": "worker", "x": 400, "y": 120, "w": 200, "h": 60},
+                {"type": "arrow", "from": "owner", "to": "store"},
+            ]
+        }
+        doc = build.Builder(spec).build()
+        with tempfile.TemporaryDirectory() as td:
+            p = os.path.join(td, "o.excalidraw")
+            json.dump(doc, open(p, "w", encoding="utf-8"))
+            hits = [f for f in lint.lint(p) if f["rule"] == "misleading-proximity"]
+            self.assertEqual(hits, [])
+
+
 class TestSmallBugs(unittest.TestCase):
     def test_builder_rejects_bad_icon(self):
         with tempfile.TemporaryDirectory() as td:

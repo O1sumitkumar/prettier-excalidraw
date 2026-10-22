@@ -132,9 +132,22 @@ def lint(path, font=None, arrowhead=None):
     # directly under a non-store box it is not connected to. Readers assume the box
     # above owns the store before they read any arrow. Peers stacked in a column
     # (two services, two stores) are fine, so the rule is deliberately narrow.
+    # Annotation notes (lightgrey, stroke 1, left-aligned bound text) are ignored:
+    # they caption the diagram and are not ownership cues.
     STORE_FILLS = set(STYLE["store_fills"])
+    NOTE_FILL = STYLE["fills"].get("lightgrey", "#e9ecef")
+
+    def is_note(e):
+        if e["type"] != "rectangle" or e.get("strokeWidth") != 1:
+            return False
+        if e.get("backgroundColor") != NOTE_FILL:
+            return False
+        return any(t.get("containerId") == e["id"] and t.get("textAlign") == "left"
+                   for t in els if t["type"] == "text")
+
     byid_box = {e["id"]: e for e in els if e["type"] == "rectangle"
-                and any(b.get("type") == "text" for b in e.get("boundElements") or [])}
+                and any(b.get("type") == "text" for b in e.get("boundElements") or [])
+                and not is_note(e)}
     links = {}
     for e in els:
         if e["type"] == "arrow" and e.get("startBinding") and e.get("endBinding"):
