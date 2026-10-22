@@ -77,8 +77,9 @@ that directory (they import each other) or set `PYTHONPATH` to it.
      (`<slug>` is the lowercase brand name, e.g. `postgresql`, `apachekafka`,
      `kubernetes`, `amazonaws`, `redis`, `grafana`). A missing slug downloads an
      empty or HTML file, so check the result starts with `<svg` before using it.
-     Brand colours like Backstage teal or Vault yellow vanish on a light fill; add
-     `/<hex>` to fetch a darker version, e.g. `kubernetes/326CE5`, `vault/000000`.
+     The builder darkens a brand colour that would vanish on the box fill (Backstage
+     teal on cyan, Vault yellow on purple) and tells you; `icon_color` in the spec
+     overrides it when you want a specific shade.
    - no icon. Never substitute a wrong or generic icon for a named product.
    Put the icon on a box with `"icon": "icons/x.svg"` (builder sizes it to ~80 % of the
    box height, on the left) or as a standalone `image` element with a `label` under it

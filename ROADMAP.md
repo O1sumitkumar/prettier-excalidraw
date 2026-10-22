@@ -89,7 +89,7 @@ like images, keep them grouped and exempt from the roughness rule.
 `"icons_dir"` in the spec or a `PRETTIER_EXCALIDRAW_ICONS` environment variable;
 match by label slug before falling back to Simple Icons.
 
-### 4.3 Icon colour on light fills  (S)
+### 4.3 Icon colour on light fills  (S) — done
 Pick a darker Simple Icons colour automatically when the brand colour has low
 contrast against the box fill (the lint already knows how to measure luminance).
 

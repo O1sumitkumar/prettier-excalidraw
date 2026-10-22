@@ -43,7 +43,10 @@ Icon folders are searched in this order: `icons_dir` (a string or a list), then 
   in the icon folders (`"icon": "PostgreSQL"`), **or** `"auto"` to look up the first
   label line. Lookup is by slug (lowercase, letters and digits only), exact first,
   then a unique prefix match, so `"postgres"` finds `PostgreSQL.svg`. A named icon
-  that is not found stops the build; `auto` just leaves the box bare. Placed on the left at
+  that is not found stops the build; `auto` just leaves the box bare. An SVG whose brand
+  colour has less than 3:1 contrast on the box fill is darkened automatically (a
+  warning says so); `icon_color: "#hex"` forces a colour, `icon_color: "keep"` leaves
+  the file untouched. Placed on the left at
   ~80 % of box height; the builder shrinks it to ≥ 56 % or widens the box so the
   centred label never overlaps it. `icon_h` overrides the height.
 - `w` / `h` default 240 × 70. The builder enlarges a box that cannot fit its label

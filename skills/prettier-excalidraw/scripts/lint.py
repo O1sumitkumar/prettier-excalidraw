@@ -15,7 +15,8 @@ Standard library only.
 """
 import json, sys
 from collections import Counter
-from exstyle import (ARROWHEADS, FONT_IDS, FONT_NAMES, FONT_SIZES, area, bbox, inside, is_light, overlap)
+from exstyle import (ARROWHEADS, FONT_IDS, FONT_NAMES, FONT_SIZES, ICON_MIN_CONTRAST, area, bbox, contrast,
+                     inside, is_light, overlap)
 
 
 def load(path):
@@ -106,6 +107,19 @@ def lint(path, font="comic", arrowhead="outline"):
                     add("icon-size", e, f"icon is {ratio:.0%} of box {r['id']} height (want 65-95%)", fixable=False)
             if e.get("scale") not in (None, [1, 1]):
                 add("icon-stretched", e, f"image scale={e['scale']}", fixable=False)
+            f = d.get("files", {}).get(e.get("fileId"), {})
+            if conts and f.get("mimeType") == "image/svg+xml":
+                import base64, re
+                try:
+                    svg = base64.b64decode(f["dataURL"].split(",", 1)[1]).decode("utf-8", "ignore")
+                    m = re.search(r'<svg\b[^>]*?\sfill="(#[0-9a-fA-F]{3,6})"', svg)
+                    bg = r.get("backgroundColor")
+                    if m and bg and bg != "transparent" and contrast(m.group(1), bg) < ICON_MIN_CONTRAST:
+                        add("icon-low-contrast", e, f"icon colour {m.group(1)} on box fill {bg} has contrast "
+                            f"{contrast(m.group(1), bg):.1f} (want >= {ICON_MIN_CONTRAST:.0f}); rebuild or set icon_color",
+                            fixable=False)
+                except Exception:
+                    pass
 
     # misleading proximity: a data store / cache / queue (red fill in this style) sitting
     # directly under a non-store box it is not connected to. Readers assume the box

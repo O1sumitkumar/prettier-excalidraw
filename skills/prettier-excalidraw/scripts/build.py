@@ -15,7 +15,8 @@ Spec format: see references/spec-format.md (also summarised in SKILL.md).
 Standard library only.
 """
 import base64, hashlib, json, math, os, random, struct, sys, time
-from exstyle import (ARROW_COLORS, ARROWHEADS, CHAR_W, FILLS, FONT_IDS, LINE_H, STROKE, TINTS, area)
+from exstyle import (ARROW_COLORS, ARROWHEADS, CHAR_W, FILLS, FONT_IDS, ICON_MIN_CONTRAST, LINE_H, STROKE, TINTS,
+                     area, contrast, darken_to_contrast)
 
 _ALPHABET = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
@@ -165,13 +166,15 @@ class Builder:
             e["boundElements"].append({"type": "text", "id": t["id"]})
             self.layers["text"].append(t)
         if icon_h:
-            self._image(it["icon"], it["x"] + 12, it["y"] + (h - icon_h) / 2, None, icon_h, group=e)
+            self._image(it["icon"], it["x"] + 12, it["y"] + (h - icon_h) / 2, None, icon_h, group=e,
+                        on_fill=fill if fill != "transparent" else "#ffffff", icon_color=it.get("icon_color"))
 
     def add_image(self, it):
         src = it.get("src") or self._resolve_icon(dict(it, label=it.get("label", "")))
         if not src:
             raise SystemExit(f"image {it.get('id')}: give `src` or a resolvable `icon`")
-        e = self._image(src, it["x"], it["y"], it.get("w"), it.get("h", 120), spec_id=it.get("id"))
+        e = self._image(src, it["x"], it["y"], it.get("w"), it.get("h", 120), spec_id=it.get("id"),
+                        icon_color=it.get("icon_color"))
         if it.get("label"):
             size = it.get("size", 20)
             tw, th = text_size(it["label"], self.font, size)
@@ -232,13 +235,17 @@ class Builder:
         self.layers["text"].append(t)
         return t
 
-    def _image(self, src, x, y, w, h, group=None, spec_id=None):
+    def _image(self, src, x, y, w, h, group=None, spec_id=None, on_fill="#ffffff", icon_color=None):
         path = os.path.join(self.base_dir, src) if not os.path.isabs(src) else src
         if not os.path.exists(path):
             raise SystemExit(f"icon not found: {path}")
         data = open(path, "rb").read()
         ext = os.path.splitext(path)[1].lower()
         _check_image(path, data, ext)
+        if ext == ".svg" and icon_color != "keep":
+            data, note = recolor_svg(data, on_fill, icon_color)
+            if note:
+                self.warnings.append(f"icon {os.path.basename(path)}: {note}")
         mime = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".svg": "image/svg+xml",
                 ".gif": "image/gif", ".webp": "image/webp"}.get(ext, "application/octet-stream")
         fid = hashlib.sha1(data).hexdigest()
@@ -391,6 +398,32 @@ def find_icon(name, dirs):
         return exact[0]
     loose = [p for s_, p in files if s_.startswith(want) or want.startswith(s_)]
     return loose[0] if len(loose) == 1 else None
+
+
+_SVG_FILL = None
+
+
+def recolor_svg(data, on_fill, icon_color=None):
+    """Simple Icons SVGs carry one brand colour as fill="..." on the root element.
+    If that colour has too little contrast on the box fill, darken it towards black
+    until it reads (WCAG 3:1 for graphics); `icon_color` forces a specific hex.
+    Returns (bytes, note-or-None). SVGs without a root fill are left alone."""
+    import re
+    text = data.decode("utf-8", "ignore")
+    m = re.search(r'<svg\b[^>]*?\sfill="(#[0-9a-fA-F]{3,6})"', text)
+    if not m:
+        return data, None
+    cur = m.group(1)
+    if icon_color:
+        new = icon_color
+        note = f"fill {cur} -> {new} (icon_color)"
+    else:
+        if contrast(cur, on_fill) >= ICON_MIN_CONTRAST:
+            return data, None
+        new = darken_to_contrast(cur, on_fill)
+        note = f"brand colour {cur} has contrast {contrast(cur, on_fill):.1f} on {on_fill}; darkened to {new}"
+    text = text[:m.start(1)] + new + text[m.end(1):]
+    return text.encode("utf-8"), note
 
 
 def _check_image(path, data, ext):

@@ -258,6 +258,35 @@ class TestIconFolder(unittest.TestCase):
                 del os.environ["PRETTIER_EXCALIDRAW_ICONS"]
 
 
+class TestIconContrast(unittest.TestCase):
+    def test_contrast_math(self):
+        self.assertAlmostEqual(exstyle.contrast("#000000", "#ffffff"), 21, places=1)
+        self.assertLess(exstyle.contrast("#FFEC6E", "#d0bfff"), 3)       # vault yellow on purple
+        dark = exstyle.darken_to_contrast("#FFEC6E", "#d0bfff")
+        self.assertGreaterEqual(exstyle.contrast(dark, "#d0bfff"), 3)
+
+    def test_builder_darkens_and_keep_overrides(self):
+        with tempfile.TemporaryDirectory() as td:
+            icon = os.path.join(td, "vault.svg")
+            open(icon, "w").write('<svg fill="#FFEC6E" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h24v24z"/></svg>')
+            base = {"id": "b", "type": "box", "label": "vault", "icon": icon, "x": 0, "y": 0, "fill": "purple"}
+            import base64
+            def fill_of(spec):
+                b = build.Builder(spec); doc = b.build()
+                svg = base64.b64decode(next(iter(doc["files"].values()))["dataURL"].split(",", 1)[1]).decode()
+                import re; return re.search(r'fill="(#[0-9a-fA-F]+)"', svg).group(1), b.warnings
+            fill, warns = fill_of({"elements": [base]})
+            self.assertNotEqual(fill.lower(), "#ffec6e"); self.assertTrue(any("darkened" in w for w in warns))
+            fill, _ = fill_of({"elements": [dict(base, icon_color="keep")]})
+            self.assertEqual(fill, "#FFEC6E")
+            fill, _ = fill_of({"elements": [dict(base, icon_color="#123456")]})
+            self.assertEqual(fill, "#123456")
+            # lint sees the low-contrast icon in a file built with keep
+            doc = build.Builder({"elements": [dict(base, icon_color="keep")]}).build()
+            p = os.path.join(td, "o.excalidraw"); json.dump(doc, open(p, "w"))
+            self.assertIn("icon-low-contrast", {f["rule"] for f in lint.lint(p)})
+
+
 class TestLintCli(unittest.TestCase):
     def test_allow_manual_exit_code(self):
         ref = os.path.join(EXAMPLES, "layered-architecture.excalidraw")

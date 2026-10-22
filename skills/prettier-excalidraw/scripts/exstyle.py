@@ -59,3 +59,39 @@ def overlap(a, b):
 
 def area(b):
     return max(0.0, b[2] - b[0]) * max(0.0, b[3] - b[1])
+
+
+def _rgb(hexcolor):
+    h = hexcolor.lstrip("#")
+    if len(h) == 3:
+        h = "".join(c * 2 for c in h)
+    return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
+
+
+def luminance(hexcolor):
+    """WCAG relative luminance, 0 (black) to 1 (white)."""
+    def ch(c):
+        c /= 255
+        return c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
+    r, g, b = _rgb(hexcolor)
+    return 0.2126 * ch(r) + 0.7152 * ch(g) + 0.0722 * ch(b)
+
+
+def contrast(fg, bg):
+    """WCAG contrast ratio between two hex colours (1 = identical, 21 = black on white)."""
+    l1, l2 = luminance(fg), luminance(bg)
+    hi, lo = max(l1, l2), min(l1, l2)
+    return (hi + 0.05) / (lo + 0.05)
+
+
+ICON_MIN_CONTRAST = 3.0   # WCAG threshold for graphics
+
+
+def darken_to_contrast(fg, bg, target=ICON_MIN_CONTRAST):
+    """Scale a colour towards black until it reaches the target contrast on bg.
+    Returns the (possibly unchanged) hex colour."""
+    r, g, b = _rgb(fg)
+    f = 1.0
+    while contrast("#%02x%02x%02x" % (int(r * f), int(g * f), int(b * f)), bg) < target and f > 0.05:
+        f -= 0.05
+    return "#%02x%02x%02x" % (int(r * f), int(g * f), int(b * f))

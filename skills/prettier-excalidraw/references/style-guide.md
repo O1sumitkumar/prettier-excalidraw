@@ -110,6 +110,7 @@ arrow. Snap to a 20 px grid.
 | unbound-arrow | endpoint touches a box but is not bound | manual |
 | icon-size | icon outside 55–100 % of its box height | manual |
 | icon-stretched | image scale ≠ [1, 1] | manual |
+| icon-low-contrast | SVG icon colour below 3:1 contrast on its box fill | manual |
 | arrow-through-box | a connector crosses a component box it is not bound to | manual |
 | arrow-overlap | two connectors share a collinear segment (> 20 px) | manual |
 | text-over-box | free text lies over a component box it is not bound to | manual |

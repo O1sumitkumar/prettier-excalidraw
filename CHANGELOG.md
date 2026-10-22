@@ -11,7 +11,10 @@ All notable changes to this project are documented here. The format follows
   rasterised by Chrome or macOS quick-look; `build.py --png` / `--svg` write the
   image next to the `.excalidraw` file (roadmap 1.1, #15).
 
-- `lint.py`: `box-overlap` - two component boxes intersecting (#3).
+- `lint.py`: `box-overlap` - two component boxes intersecting (#3);
+  `icon-low-contrast` - SVG icon colour below 3:1 on its box fill (#11).
+- `build.py`: an SVG icon whose brand colour has less than 3:1 contrast on the box
+  fill is darkened automatically; `icon_color` forces a hex or `keep` (#11).
 - `build.py`: user icon folders. `"icons_dir"` in the spec or
   `PRETTIER_EXCALIDRAW_ICONS`; `"icon": "PostgreSQL"` looks a name up by slug and
   `"icon": "auto"` matches the label, leaving the box bare when nothing fits (#20).
