@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+- `build.py` refuses an empty icon or image file, or one whose bytes do not match
+  its `.svg`, `.png` or `.jpg` extension, and names the file and the box (#1).
+
 ### Planned
 See [ROADMAP.md](ROADMAP.md).
 
