@@ -13,6 +13,8 @@ All notable changes to this project are documented here. The format follows
 - `build.py`: `note` element - lightgrey annotation box with left-aligned bound
   text (stroke 1, padding 12); `lint.py` ignores notes for `misleading-proximity`
   (#37, @dbdefault).
+- `build.py`: `divider` lines (horizontal or vertical, optional dashed and label)
+  and `group` elements that make listed members move together (#38, @dbdefault).
 
 ### Planned
 See [ROADMAP.md](ROADMAP.md).

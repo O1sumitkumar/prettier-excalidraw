@@ -68,7 +68,8 @@ that directory (they import each other) or set `PYTHONPATH` to it.
    `get/set idempotency key`), not just a noun.
    Flowcharts and request flows can use `diamond` (decision), `ellipse` (start, end,
    yes/no markers, actors) and `note` (a caption or caveat in a light-grey box) next to
-   boxes and regions; see `references/spec-format.md` for their shape.
+   boxes and regions, plus `divider` lines and `group`s that move together; see
+   `references/spec-format.md` for their shape.
    Give every box and region an `id`; arrows reference those ids. Pick `from_side` /
    `to_side` so an arrow leaves a box on the side that faces its target and does not
    cross other boxes; use `from_offset` / `to_offset` to fan out several arrows from one
