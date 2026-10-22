@@ -6,7 +6,17 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SCRIPTS = os.path.join(ROOT, "skills", "prettier-excalidraw", "scripts")
 sys.path.insert(0, SCRIPTS)
 
-from layout import from_spec, direction, layout, Graph, Node, Edge, rank  # noqa: E402
+from layout import (  # noqa: E402
+    from_spec,
+    direction,
+    layout,
+    Graph,
+    Node,
+    Edge,
+    rank,
+    order,
+    crossings,
+)
 
 
 def measure(it):
@@ -150,9 +160,96 @@ class TestRank(unittest.TestCase):
                          self._rank((("a", "b"), ("b", "c"), ("c", "a"))))
 
 
-@unittest.skip("stage 2 (#49) not implemented")
 class TestOrder(unittest.TestCase):
-    pass
+    """Stage 2 (#49): barycentre ordering within each rank."""
+
+    def _make(self, nodes, edges, ranks):
+        """A top-level graph: nodes in spec order, then edges."""
+        g = _graph()
+        for n in nodes:
+            _box(g, n)
+        for src, dst in edges:
+            g.edges.append(Edge(src=src, dst=dst))
+        return g, {n: ranks[n] for n in nodes}
+
+    def test_bipartite_naive_crosses_barycentre_does_not(self):
+        # spec order puts x before y, but a feeds y and b feeds x
+        g, ranks = self._make(
+            ["a", "b", "x", "y"], [("a", "y"), ("b", "x")],
+            {"a": 0, "b": 0, "x": 1, "y": 1},
+        )
+        initial = {0: ["a", "b"], 1: ["x", "y"]}
+        self.assertEqual(crossings(initial, g.edges), 1)
+        result = order(g, None, ranks)
+        self.assertEqual(result, {0: ["a", "b"], 1: ["y", "x"]})
+        self.assertEqual(crossings(result, g.edges), 0)
+
+    def test_a_bad_initial_order_is_repaired(self):
+        # rank 0 spec order is b, a while rank 1 is x, y: a feeds x and
+        # b feeds y, so the initial orders cross and a sweep must repair
+        # one of the two ranks (here: the sweeps align them with 0 crossings)
+        g, ranks = self._make(
+            ["b", "a", "x", "y"], [("a", "x"), ("b", "y")],
+            {"b": 0, "a": 0, "x": 1, "y": 1},
+        )
+        initial = {0: ["b", "a"], 1: ["x", "y"]}
+        self.assertEqual(crossings(initial, g.edges), 1)
+        result = order(g, None, ranks)
+        self.assertEqual(crossings(result, g.edges), 0)
+
+    def test_spec_order_is_stable_when_no_edges(self):
+        g, ranks = self._make(["n1", "n2", "n3"], [],
+                                {"n1": 0, "n2": 0, "n3": 0})
+        self.assertEqual(order(g, None, ranks), {0: ["n1", "n2", "n3"]})
+
+    def test_sweeps_that_do_not_help_change_nothing(self):
+        # already crossing-free: the initial order wins the tie
+        g, ranks = self._make(
+            ["a", "b", "x", "y"], [("a", "x"), ("b", "y")],
+            {"a": 0, "b": 0, "x": 1, "y": 1},
+        )
+        self.assertEqual(
+            order(g, None, ranks), {0: ["a", "b"], 1: ["x", "y"]}
+        )
+
+    def test_ties_break_on_spec_order(self):
+        # two rank-1 nodes with the same barycentre keep their spec order
+        g, ranks = self._make(
+            ["a", "x", "y"], [("a", "x"), ("a", "y")],
+            {"a": 0, "x": 1, "y": 1},
+        )
+        self.assertEqual(
+            order(g, None, ranks), {0: ["a"], 1: ["x", "y"]}
+        )
+
+    def test_three_ranks_stay_consistent(self):
+        # a chain a -> m -> z with a second path b -> m: no crossings, and
+        # every rank keeps exactly its own nodes
+        g, ranks = self._make(
+            ["a", "b", "m", "z"],
+            [("a", "m"), ("b", "m"), ("m", "z")],
+            {"a": 0, "b": 0, "m": 1, "z": 2},
+        )
+        result = order(g, None, ranks)
+        self.assertEqual(sorted(result), [0, 1, 2])
+        self.assertEqual(crossings(result, g.edges), 0)
+
+    def test_crossings_counts_inverted_pairs(self):
+        g, _ = self._make(
+            ["a", "b", "x", "y"], [("a", "y"), ("b", "x")],
+            {"a": 0, "b": 0, "x": 1, "y": 1},
+        )
+        self.assertEqual(crossings({0: ["a", "b"], 1: ["x", "y"]}, g.edges), 1)
+        self.assertEqual(crossings({0: ["a", "b"], 1: ["y", "x"]}, g.edges), 0)
+        # edges spanning ranks are not crossing partners until bent (#52)
+        g2, _ = self._make(
+            ["a", "b", "x", "y", "z"],
+            [("a", "z"), ("b", "x"), ("x", "z")],
+            {"a": 0, "b": 0, "x": 1, "y": 1, "z": 2},
+        )
+        self.assertEqual(
+            crossings({0: ["a", "b"], 1: ["x", "y"], 2: ["z"]}, g2.edges), 0
+        )
 
 
 @unittest.skip("stage 3 (#50) not implemented")
