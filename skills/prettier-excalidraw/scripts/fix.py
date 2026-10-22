@@ -95,6 +95,15 @@ def fix(doc, font=None, arrowhead=None):
                     changed += 1; moved = True
                     break
             if moved: break
+    # free text hidden under a filled box drawn later: move the text after the last filled box
+    order = {e["id"]: i for i, e in enumerate(els)}
+    for t in [e for e in els if e["type"] == "text" and not e.get("containerId")]:
+        tb = bbox(t)
+        later = [r for r in rects if order[r["id"]] > order[t["id"]] and inside(tb, bbox(r), tol=1e9)
+                 and not (tb[2] < bbox(r)[0] or bbox(r)[2] < tb[0] or tb[3] < bbox(r)[1] or bbox(r)[3] < tb[1])]
+        if later:
+            els.remove(t); els.insert(els.index(max(later, key=lambda r: order[r["id"]])) + 1, t)
+            order = {e["id"]: i for i, e in enumerate(els)}; changed += 1
     arrows = [e for e in els if e["type"] == "arrow" and (e.get("endArrowhead") or e.get("startArrowhead"))]
     if arrows:
         arrow_text = {b["id"] for a in arrows for b in a.get("boundElements") or [] if b.get("type") == "text"}

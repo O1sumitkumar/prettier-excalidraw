@@ -50,14 +50,21 @@ that directory (they import each other) or set `PYTHONPATH` to it.
 
 3. **Write the spec** (`references/spec-format.md`) as JSON. Lay elements out on a
    20 px grid with these gaps, because the builder places labels relative to them:
-   - ≥ 120 px between two boxes joined by a labelled arrow (room for the label)
+   - between two boxes joined by a labelled arrow: at least `11 px × label length + 40`
+     (`writes payments, ledger` needs ~300 px; a bare arrow needs 60). Parallel
+     vertical arrows need their labels' width between them, since labels sit to the
+     right of a vertical run.
    - 30–40 px inset from a region border to its first child, ≥ 20 px between siblings
    - leave ~40 px above a region for its title when the title is outside
+   A region can carry its provider logo with `"icon": "vercel"` (small, in the corner
+   opposite the title), which is the usual way to show "hosted on X".
    Place a store, cache or queue directly below or beside the component that uses it,
    never under a box that does not touch it: readers infer ownership from proximity
    before they read arrows, so a cache parked under the gateway "belongs" to the
    gateway no matter what the arrow says. If two services share a store, put it
-   between them. Label the arrow with the operation (`writes payments`,
+   between them. When the linter reports `misleading-proximity`, either move the store
+   or, if the box above really does use it, add that arrow: an honest extra edge is a
+   legitimate fix. Label the arrow with the operation (`writes payments`,
    `get/set idempotency key`), not just a noun.
    Give every box and region an `id`; arrows reference those ids. Pick `from_side` /
    `to_side` so an arrow leaves a box on the side that faces its target and does not
@@ -73,13 +80,17 @@ that directory (they import each other) or set `PYTHONPATH` to it.
      `"icon": "auto"` on every box: the builder matches the label against the file
      names and leaves a box bare when nothing matches. Ask where their icons live if
      they mention having some.
-   - Simple Icons as SVG: `curl -sL https://cdn.simpleicons.org/<slug> -o icons/<slug>.svg`
-     (`<slug>` is the lowercase brand name, e.g. `postgresql`, `apachekafka`,
-     `kubernetes`, `amazonaws`, `redis`, `grafana`). A missing slug downloads an
-     empty or HTML file, so check the result starts with `<svg` before using it.
-     The builder darkens a brand colour that would vanish on the box fill (Backstage
-     teal on cyan, Vault yellow on purple) and tells you; `icon_color` in the spec
-     overrides it when you want a specific shade.
+   - Simple Icons through the bundled helper (the CDN blocks plain `curl` with a bot
+     page, and the npm mirror ships uncoloured files; the helper handles both and
+     applies the brand colour):
+     ```bash
+     python3 icons.py search fly            # -> flydotio  Fly.io  #24175B
+     python3 icons.py fetch postgresql apachekafka flydotio -o icons/
+     ```
+     Slugs are the lowercase brand name with `.`→`dot`, `+`→`plus`, `&`→`and`
+     (`nodedotjs`, `fly dotio`→`flydotio`). The builder darkens a brand colour that
+     would vanish on the box fill and prints one summary line; `icon_color` on the
+     box overrides it when the darkened shade looks off-brand.
    - no icon. Never substitute a wrong or generic icon for a named product.
    Put the icon on a box with `"icon": "icons/x.svg"` (builder sizes it to ~80 % of the
    box height, on the left) or as a standalone `image` element with a `label` under it
@@ -100,8 +111,9 @@ that directory (they import each other) or set `PYTHONPATH` to it.
    an arrow crossing a box it is not connected to, two labels on top of each other, a label on top of a line, a box that
    the builder widened (see its warnings) now overlapping a neighbour, a region whose
    children spill outside it. Fix the spec and rebuild; two or three rounds is normal.
-   The preview uses a stand-in font, so text may be a little narrower or wider than in
-   Excalidraw - leave margin.
+   The preview uses the stored text widths, but the real font can run up to ~15 % wider
+   on bracketed or upper-case labels - leave that much margin, or export to PNG
+   (`build.py --png`) for the real font before delivering.
 
 6. **Deliver** the `.excalidraw` file (and the spec, so the user can regenerate). If the
    user wants an image too, or the diagram is going into a README, slide or chat, add
@@ -117,6 +129,11 @@ python3 lint.py in.excalidraw                 # what is wrong, with element ids
 python3 fix.py in.excalidraw out.excalidraw   # mechanical fixes, positions untouched
 python3 lint.py out.excalidraw                # what remains needs a human
 ```
+When the user also wants a source they can regenerate from, or when the remaining
+findings are mostly layout (overlaps, hidden text, arrows through boxes), restyling
+is the wrong tool: rebuild the diagram from a spec with the generate workflow and
+hand back the spec. `fix.py` never moves shapes, so it cannot repair layout.
+
 `fix.py` changes font, snaps font sizes to 16/20/28 (re-measuring the text box and
 re-centring bound labels), sets roughness 0, solid fills, sharp corners, the arrowhead,
 moves arrows to the end of the z-order and moves a child box after its container. It

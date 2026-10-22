@@ -282,9 +282,9 @@ class TestIconContrast(unittest.TestCase):
             def fill_of(spec):
                 b = build.Builder(spec); doc = b.build()
                 svg = base64.b64decode(next(iter(doc["files"].values()))["dataURL"].split(",", 1)[1]).decode()
-                import re; return re.search(r'fill="(#[0-9a-fA-F]+)"', svg).group(1), b.warnings
+                import re; return re.search(r'fill="(#[0-9a-fA-F]+)"', svg).group(1), b.darkened
             fill, warns = fill_of({"elements": [base]})
-            self.assertNotEqual(fill.lower(), "#ffec6e"); self.assertTrue(any("darkened" in w for w in warns))
+            self.assertNotEqual(fill.lower(), "#ffec6e"); self.assertTrue(warns)
             fill, _ = fill_of({"elements": [dict(base, icon_color="keep")]})
             self.assertEqual(fill, "#FFEC6E")
             fill, _ = fill_of({"elements": [dict(base, icon_color="#123456")]})
@@ -354,6 +354,28 @@ class TestStyleProfiles(unittest.TestCase):
             self.assertEqual(run("lint.py", p).returncode, 1)
             r = run("fix.py", p, os.path.join(td, "f.excalidraw"), "--style", sp)
             self.assertIn("0 changes", r.stdout)
+
+
+class TestIconsHelper(unittest.TestCase):
+    def test_slug_rules_and_fill_injection(self):
+        import icons
+        self.assertEqual(icons.title_to_slug("Node.js"), "nodedotjs")
+        self.assertEqual(icons.title_to_slug("Fly.io"), "flydotio")
+        self.assertEqual(icons.title_to_slug("C++"), "cplusplus")
+        self.assertEqual(icons.title_to_slug("Dungeons & Dragons"), "dungeonsanddragons")
+        bare = '<svg role="img" viewBox="0 0 24 24"><path d="M0 0h24v24z"/></svg>'
+        self.assertIn('fill="#635BFF"', icons.inject_fill(bare, "#635BFF"))
+        coloured = '<svg fill="#000000" viewBox="0 0 24 24"/>'
+        self.assertIn('fill="#123456"', icons.inject_fill(coloured, "#123456"))
+        self.assertNotIn("#000000", icons.inject_fill(coloured, "#123456"))
+
+    def test_region_icon_is_placed_in_opposite_corner(self):
+        spec = {"elements": [{"id": "r", "type": "region", "title": "[ vercel ]", "x": 0, "y": 0, "w": 600, "h": 200,
+                              "icon": os.path.join(EXAMPLES, "icons", "kubernetes.svg")}]}
+        doc = build.Builder(spec).build()
+        img = next(e for e in doc["elements"] if e["type"] == "image")
+        self.assertGreater(img["x"], 500, "logo sits at the right when the title is top-left")
+        self.assertAlmostEqual(img["height"], 32, places=3)
 
 
 class TestLintCli(unittest.TestCase):

@@ -26,6 +26,8 @@ Icon folders are searched in this order: `icons_dir` (a string or a list), then 
   tints; `none` = transparent with a border, the most common choice)
 - `title_pos`: `top-left` (default) | `top-right` | `top-center` | `bottom-center`
   (below the region). Title is free text, size 20 unless `size` given.
+- `icon`: a logo (file, name in the icon folders, or Simple Icons slug fetched with
+  `icons.py`) drawn 32 px in the corner opposite the title; `icon_h` changes the size.
 - `subtitle`: a short note (size 16) in the top corner opposite the title, e.g.
   `"subtitle": "provisioned by the platform team"`.
 - `dotted: true` → dotted 1 px border at 60 % opacity, for a loose logical group.
@@ -50,8 +52,8 @@ Icon folders are searched in this order: `icons_dir` (a string or a list), then 
   the file untouched. Placed on the left at
   ~80 % of box height; the builder shrinks it to ≥ 56 % or widens the box so the
   centred label never overlaps it. `icon_h` overrides the height.
-- `w` / `h` default 240 × 70. The builder enlarges a box that cannot fit its label
-  and prints a warning - treat warnings as a cue to adjust the layout.
+- `w` / `h` default 240 × 70. Labels get 16 px of padding each side; the builder
+  enlarges a box that cannot fit its label (more than 4 px short) and prints a warning - treat warnings as a cue to adjust the layout.
 - `dashed: true`, `stroke_width`.
 
 ### image – a standalone logo or picture
@@ -81,9 +83,16 @@ below. Can be an arrow target when it has an `id`.
 - `from_side` / `to_side`: `left | right | top | bottom`; omitted sides are chosen
   from the relative position of the two elements.
 - `from_offset` / `to_offset`: shift the anchor along the side (px) so several
-  arrows from one side do not overlap.
-- Routing is orthogonal (elbowed): straight when aligned, otherwise one or two bends
-  through the midpoint. Arrows are bound to both ends so they follow the boxes in
+  arrows from one side do not overlap. Keep them equal for a straight arrow; unequal
+  offsets add a jog near the target and shift the label.
+- Arrows connect `id`s of boxes, regions, images, diamonds and ellipses only; free
+  `text` cannot be an endpoint.
+- Routing is orthogonal (elbowed). Same axis on both ends (left/right or top/bottom):
+  straight when aligned, else two bends through the midpoint (or `bend`). Mixed
+  (e.g. `top` → `left`): one bend; the arrow leaves along the start side's axis, turns
+  once at the target's coordinate, and enters the target side (`top`→`left` goes up to
+  the target's y, then right into its left side). Same side on both ends loops 40 px
+  out and back. Arrows are bound to both ends so they follow the boxes in
   Excalidraw.
 - `bend`: coordinate of the middle segment - the y of the horizontal run for
   top/bottom routes, the x of the vertical run for left/right routes. Use it when two
@@ -101,6 +110,10 @@ order the spec by hand.
 
 ## Worked example
 See `assets/examples/temporal.spec.json` and the `.excalidraw` it builds.
+
+## Fetching icons
+`python3 icons.py search <words>` finds a Simple Icons slug; `python3 icons.py fetch
+<slug>... -o icons/` writes coloured SVGs ready for `"icon": "icons/<slug>.svg"`.
 
 ## Exporting an image
 `export.py diagram.excalidraw out.png` (or `out.svg`, `--scale 3`, `--no-fonts`) writes a

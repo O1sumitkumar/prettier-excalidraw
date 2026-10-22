@@ -68,6 +68,7 @@ class Builder:
         self.layers = {"region": [], "box": [], "image": [], "text": [], "arrow": []}
         self.by_id = {}          # spec id -> excalidraw element (the box/region/image)
         self.warnings = []
+        self.darkened = []       # icons recoloured for contrast, summarised once at the end
         self.icon_dirs = icon_dirs(spec, base_dir)
 
     # ---------- public ----------
@@ -101,6 +102,14 @@ class Builder:
                 tx = it["x"] + pad
             ty = it["y"] + it["h"] + 8 if pos == "bottom-center" else it["y"] + pad
             self._free_text(it["title"], tx, ty, size, "center" if "center" in pos else "left")
+        if it.get("icon"):
+            # provider logo in the corner opposite the title ("hosted on X" boundaries)
+            ih = it.get("icon_h", 32)
+            pad = 16
+            left = it.get("title_pos", "top-left") == "top-right"
+            ix = it["x"] + pad if left else it["x"] + it["w"] - ih - pad
+            self._image(self._resolve_icon(dict(it, label=it.get("title", ""))), ix, it["y"] + pad - 4, None, ih,
+                        on_fill=fill if fill != "transparent" else "#ffffff", icon_color=it.get("icon_color"))
         if it.get("subtitle"):
             # secondary note in the opposite top corner from the title, size 16
             size = it.get("subtitle_size", default_size("small"))
@@ -154,7 +163,7 @@ class Builder:
                                          f"to clear the label; widen the box or shorten the label")
         strip = (icon_h + 20) if icon_h else 16
         need_w = tw + 2 * strip
-        if need_w > w:
+        if need_w > w + 4:          # a few px short is fine; avoid growing a 40 px cell to 60 for one letter
             new_w = int(math.ceil(need_w / 20.0) * 20)   # stay on the 20 px grid
             self.warnings.append(f"box {it.get('id')}: widened {w} -> {new_w} to fit label"
                                  + (" beside icon" if icon_h else ""))
@@ -253,7 +262,7 @@ class Builder:
         if ext == ".svg" and icon_color != "keep":
             data, note = recolor_svg(data, on_fill, icon_color)
             if note:
-                self.warnings.append(f"icon {os.path.basename(path)}: {note}")
+                self.darkened.append(f"{os.path.basename(path)} {note}")
         mime = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".svg": "image/svg+xml",
                 ".gif": "image/gif", ".webp": "image/webp"}.get(ext, "application/octet-stream")
         fid = hashlib.sha1(data).hexdigest()
@@ -429,7 +438,7 @@ def recolor_svg(data, on_fill, icon_color=None):
         if contrast(cur, on_fill) >= ICON_MIN_CONTRAST:
             return data, None
         new = darken_to_contrast(cur, on_fill)
-        note = f"brand colour {cur} has contrast {contrast(cur, on_fill):.1f} on {on_fill}; darkened to {new}"
+        note = f"{cur}->{new} (contrast {contrast(cur, on_fill):.1f} on {on_fill})"
     text = text[:m.start(1)] + new + text[m.end(1):]
     return text.encode("utf-8"), note
 
@@ -491,6 +500,8 @@ def main():
     json.dump(doc, open(out, "w", encoding="utf-8"), indent=1)
     for w in b.warnings:
         print("warning:", w)
+    if b.darkened:
+        print("icons darkened for contrast (set icon_color to override): " + "; ".join(b.darkened))
     print(f"wrote {out}: {len(doc['elements'])} elements, {len(doc['files'])} embedded images")
     for flag, ext in (("--svg", ".svg"), ("--png", ".png")):
         if flag in flags:

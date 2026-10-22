@@ -23,6 +23,13 @@ All notable changes to this project are documented here. The format follows
   `lint.py` and `fix.py` take `--style style.json` (or `PRETTIER_EXCALIDRAW_STYLE`,
   or `"style"` in the spec) so every default, rule and palette name comes from it (#19).
 
+- `icons.py`: `search` and `fetch` for Simple Icons; falls back to the npm mirror
+  when the CDN blocks non-browser clients and applies the brand colour.
+- Regions take an `icon` (provider logo in the corner opposite the title).
+- `lint.py`: `text-behind-box` (free text hidden under a later filled box; `fix.py`
+  moves it up); `arrow-through-box` ignores a box that contains the arrow's endpoint;
+  `--help` works.
+
 ### Fixed
 - Icon file errors name the box or image that uses the file and tolerate a UTF-8
   BOM (from #23 by @O1sumitkumar); `export.py` runs Chrome with a throwaway

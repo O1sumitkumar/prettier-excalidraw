@@ -184,8 +184,12 @@ def lint(path, font=None, arrowhead=None):
         for a, b in zip(pts, pts[1:]):
             seg = (min(a[0], b[0]), min(a[1], b[1]), max(a[0], b[0]), max(a[1], b[1]))
             seg_list.append((e, seg))
+            ends = [(pts[0][0], pts[0][1]), (pts[-1][0], pts[-1][1])]
             hit = next((r for r in small_boxes if r["id"] not in bound
-                        and overlap(seg, (bbox(r)[0] + 3, bbox(r)[1] + 3, bbox(r)[2] - 3, bbox(r)[3] - 3))), None)
+                        and overlap(seg, (bbox(r)[0] + 3, bbox(r)[1] + 3, bbox(r)[2] - 3, bbox(r)[3] - 3))
+                        # an arrow may cross a box that contains its own endpoint (target nested inside it)
+                        and not any(bbox(r)[0] - 8 <= px <= bbox(r)[2] + 8 and bbox(r)[1] - 8 <= py <= bbox(r)[3] + 8
+                                    for px, py in ends)), None)
             if hit:
                 add("arrow-through-box", e, f"arrow runs through box {hit['id']} it is not connected to; "
                     f"route around it (from_side / to_side / bend)", fixable=False)
@@ -213,9 +217,14 @@ def lint(path, font=None, arrowhead=None):
             if overlap((b1[0] + 2, b1[1] + 2, b1[2] - 2, b1[3] - 2), (b2[0] + 2, b2[1] + 2, b2[2] - 2, b2[3] - 2)):
                 add("text-overlap", t1, f"'{t1['text'][:25]}' overlaps '{t2['text'][:25]}' ({t2['id']})", fixable=False)
 
-    # free text lying over a component box it does not belong to (a label that drifted)
+    # free text lying over a component box it does not belong to (a label that drifted), or
+    # drawn BEFORE a filled box it overlaps (hidden under the fill; fix.py moves it up)
     for t in free_text:
         tb = bbox(t); inner = (tb[0] + 2, tb[1] + 2, tb[2] - 2, tb[3] - 2)
+        behind = next((r for r in filled_rects if idx[r["id"]] > idx[t["id"]] and overlap(inner, bbox(r))), None)
+        if behind:
+            add("text-behind-box", t, f"'{t['text'][:25]}' is drawn before filled box {behind['id']} and hidden under it")
+            continue
         hit = next((r for r in small_boxes if overlap(inner, bbox(r))), None)
         if hit:
             add("text-over-box", t, f"'{t['text'][:25]}' lies over box {hit['id']}; move the text or the arrow it labels", fixable=False)
@@ -226,7 +235,7 @@ def lint(path, font=None, arrowhead=None):
         for b in small_boxes[i + 1:]:
             bb = bbox(b)
             if overlap((ab[0] + 1, ab[1] + 1, ab[2] - 1, ab[3] - 1), bb) and not inside(ab, bb) and not inside(bb, ab):
-                add("box-overlap", a, f"overlaps box {b['id']}; move one of them (builder may have widened a box)", fixable=False)
+                add("box-overlap", a, f"overlaps box {b['id']}; move one of them", fixable=False)
 
     # z-order: child rectangle before parent
     for c in filled_rects:
@@ -242,8 +251,8 @@ def lint(path, font=None, arrowhead=None):
 
 def main():
     args = sys.argv[1:]
-    if not args:
-        print(__doc__); sys.exit(2)
+    if not args or args[0] in ("-h", "--help"):
+        print(__doc__); sys.exit(0 if args else 2)
     style_from_argv(args)
     font = args[args.index("--font") + 1] if "--font" in args else None
     head = args[args.index("--arrowhead") + 1] if "--arrowhead" in args else None
