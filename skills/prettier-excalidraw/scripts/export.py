@@ -71,10 +71,12 @@ def to_png(svg, out, scale=2):
         open(src, "w").write(svg)
         chrome = find_chrome()
         if chrome:
+            # a throwaway profile keeps this independent of a Chrome window that is already open
             subprocess.run([chrome, "--headless=new", "--disable-gpu", "--hide-scrollbars",
+                            f"--user-data-dir={os.path.join(td, 'profile')}",
                             f"--force-device-scale-factor={scale}", f"--screenshot={os.path.abspath(out)}",
                             f"--window-size={w},{h}", "file://" + src],
-                           check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                           check=True, timeout=90, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             return "chrome"
         if platform.system() == "Darwin" and shutil.which("qlmanage"):
             # quick-look only makes square thumbnails: render a padded square, then crop back
@@ -86,7 +88,7 @@ def to_png(svg, out, scale=2):
             sq = sq.replace(vb.group(0), f'viewBox="{x0 - (side - vw) / 2} {y0 - (side - vh) / 2} {side} {side}"', 1)
             open(src, "w").write(sq)
             px = int(side * scale)
-            subprocess.run(["qlmanage", "-t", "-s", str(px), "-o", td, src], check=True,
+            subprocess.run(["qlmanage", "-t", "-s", str(px), "-o", td, src], check=True, timeout=90,
                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             thumb = src + ".png"
             subprocess.run(["sips", "-c", str(int(h * scale)), str(int(w * scale)), thumb, "--out", os.path.abspath(out)],

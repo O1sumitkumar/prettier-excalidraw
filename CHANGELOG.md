@@ -24,6 +24,11 @@ All notable changes to this project are documented here. The format follows
   or `"style"` in the spec) so every default, rule and palette name comes from it (#19).
 
 ### Fixed
+- Icon file errors name the box or image that uses the file and tolerate a UTF-8
+  BOM (from #23 by @O1sumitkumar); `export.py` runs Chrome with a throwaway
+  profile and a timeout (from #24 by @tedy69); icon fills accept 8-digit hex and
+  single quotes (from #25 by @dbdefault); stronger nonce test (from #22 by
+  @HarshRajSinghania).
 - `lint.py` no longer flags `no-arrowhead` on the first half of a split branch
   arrow (diamond → "yes" circle → target) (#4).
 - `build.py` refuses empty, missing or mis-typed icon files instead of embedding

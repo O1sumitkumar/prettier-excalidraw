@@ -244,11 +244,12 @@ class Builder:
 
     def _image(self, src, x, y, w, h, group=None, spec_id=None, on_fill="#ffffff", icon_color=None):
         path = os.path.join(self.base_dir, src) if not os.path.isabs(src) else src
+        owner = f"box {group.get('id')}" if group is not None else f"image {spec_id or ''}".strip()
         if not os.path.exists(path):
-            raise SystemExit(f"icon not found: {path}")
+            raise SystemExit(f"{owner}: icon not found: {path}")
         data = open(path, "rb").read()
         ext = os.path.splitext(path)[1].lower()
-        _check_image(path, data, ext)
+        _check_image(path, data, ext, owner)
         if ext == ".svg" and icon_color != "keep":
             data, note = recolor_svg(data, on_fill, icon_color)
             if note:
@@ -417,10 +418,10 @@ def recolor_svg(data, on_fill, icon_color=None):
     Returns (bytes, note-or-None). SVGs without a root fill are left alone."""
     import re
     text = data.decode("utf-8", "ignore")
-    m = re.search(r'<svg\b[^>]*?\sfill="(#[0-9a-fA-F]{3,6})"', text)
+    m = re.search(r'<svg\b[^>]*?\sfill=["\'](#[0-9a-fA-F]{3,8})["\']', text)
     if not m:
         return data, None
-    cur = m.group(1)
+    cur = m.group(1)[:7] if len(m.group(1)) == 9 else m.group(1)   # #RRGGBBAA -> ignore alpha
     if icon_color:
         new = icon_color
         note = f"fill {cur} -> {new} (icon_color)"
@@ -433,20 +434,21 @@ def recolor_svg(data, on_fill, icon_color=None):
     return text.encode("utf-8"), note
 
 
-def _check_image(path, data, ext):
+def _check_image(path, data, ext, owner="image"):
     """Refuse empty or mis-typed icon files (a missing Simple Icons slug downloads an
-    empty or HTML file) so the diagram never carries a broken image."""
+    empty or HTML file) so the diagram never carries a broken image. The message names
+    the box or image that uses the file."""
     if not data:
-        raise SystemExit(f"icon is empty: {path}")
-    head = data[:512].lstrip()
+        raise SystemExit(f"{owner}: {path} is empty")
+    head = data[:512].lstrip(b"\xef\xbb\xbf \t\r\n")   # tolerate a UTF-8 BOM and leading whitespace
     ok = {".svg": head.startswith(b"<svg") or head.startswith(b"<?xml"),
           ".png": data[:8] == b"\x89PNG\r\n\x1a\n",
           ".jpg": data[:2] == b"\xff\xd8", ".jpeg": data[:2] == b"\xff\xd8",
           ".gif": data[:4] == b"GIF8", ".webp": data[8:12] == b"WEBP"}.get(ext)
     if ok is None:
-        raise SystemExit(f"unsupported icon type {ext}: {path}")
+        raise SystemExit(f"{owner}: unsupported icon type {ext}: {path}")
     if not ok:
-        raise SystemExit(f"icon does not look like {ext[1:].upper()} (got {data[:20]!r}): {path}")
+        raise SystemExit(f"{owner}: {path} does not look like {ext[1:].upper()} (starts with {data[:20]!r})")
 
 
 def _image_dims(data, ext):

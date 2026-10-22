@@ -11,6 +11,12 @@ Thanks for helping make diagrams prettier.
 - Example diagrams must be synthetic: no real hostnames, CIDRs, customer or
   project names.
 
+## Before you start on an issue
+Comment on the issue (or assign yourself) before writing code, and check the
+latest `main` first. Several of the first pull requests arrived on the same day the
+issue was fixed on `main`, which wasted good work. Rebase on `main` before opening
+the PR.
+
 ## Running the tests
 ```bash
 python3 -m unittest discover -s tests -v

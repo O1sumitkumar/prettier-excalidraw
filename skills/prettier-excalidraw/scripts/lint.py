@@ -119,7 +119,7 @@ def lint(path, font=None, arrowhead=None):
                 import base64, re
                 try:
                     svg = base64.b64decode(f["dataURL"].split(",", 1)[1]).decode("utf-8", "ignore")
-                    m = re.search(r'<svg\b[^>]*?\sfill="(#[0-9a-fA-F]{3,6})"', svg)
+                    m = re.search(r'<svg\b[^>]*?\sfill=["\'](#[0-9a-fA-F]{3,6})["\']', svg)
                     bg = r.get("backgroundColor")
                     if m and bg and bg != "transparent" and contrast(m.group(1), bg) < ICON_MIN_CONTRAST:
                         add("icon-low-contrast", e, f"icon colour {m.group(1)} on box fill {bg} has contrast "

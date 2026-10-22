@@ -201,8 +201,13 @@ class TestSmallBugs(unittest.TestCase):
             html = os.path.join(td, "page.svg"); open(html, "w").write("<html>404</html>")
             for icon in (bad, html, os.path.join(td, "nope.svg")):
                 spec = {"elements": [{"id": "b", "type": "box", "label": "x", "icon": icon, "x": 0, "y": 0}]}
-                with self.assertRaises(SystemExit):
+                with self.assertRaises(SystemExit) as cm:
                     build.Builder(spec).build()
+                self.assertIn("box b", str(cm.exception.code), "error names the owner")
+            bom = os.path.join(td, "bom.svg")
+            open(bom, "wb").write(b'\xef\xbb\xbf<?xml version="1.0"?>\n<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"/>')
+            doc = build.Builder({"elements": [{"id": "b", "type": "box", "label": "x", "icon": bom, "x": 0, "y": 0}]}).build()
+            self.assertEqual(len(doc["files"]), 1, "BOM and xml declaration are accepted")
 
     def test_fix_refreshes_version_nonce(self):
         with tempfile.TemporaryDirectory() as td:
@@ -210,7 +215,10 @@ class TestSmallBugs(unittest.TestCase):
             run("build.py", os.path.join(EXAMPLES, "payment.spec.json"), out)
             doc = json.load(open(out)); before = {e["id"]: e["versionNonce"] for e in doc["elements"]}
             fix.fix(doc)
-            self.assertTrue(all(e["versionNonce"] != before[e["id"]] for e in doc["elements"]))
+            for e in doc["elements"]:
+                self.assertNotEqual(e["versionNonce"], before[e["id"]])
+                self.assertIsInstance(e["versionNonce"], int)
+                self.assertTrue(1 <= e["versionNonce"] < 2 ** 31)
 
     def test_box_overlap_rule(self):
         spec = {"elements": [{"id": "a", "type": "box", "label": "a", "x": 0, "y": 0, "w": 200, "h": 60},
