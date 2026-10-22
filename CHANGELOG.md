@@ -11,6 +11,14 @@ All notable changes to this project are documented here. The format follows
   rasterised by Chrome or macOS quick-look; `build.py --png` / `--svg` write the
   image next to the `.excalidraw` file (roadmap 1.1, #15).
 
+- `lint.py`: `box-overlap` - two component boxes intersecting (#3).
+
+### Fixed
+- `build.py` refuses empty, missing or mis-typed icon files instead of embedding
+  a broken image (#1).
+- `fix.py` refreshes `versionNonce` along with `version` so collaborative
+  sessions pick up the change (#2).
+
 ### Planned
 See [ROADMAP.md](ROADMAP.md).
 

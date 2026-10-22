@@ -209,8 +209,11 @@ class Builder:
 
     def _image(self, src, x, y, w, h, group=None, spec_id=None):
         path = os.path.join(self.base_dir, src) if not os.path.isabs(src) else src
+        if not os.path.exists(path):
+            raise SystemExit(f"icon not found: {path}")
         data = open(path, "rb").read()
         ext = os.path.splitext(path)[1].lower()
+        _check_image(path, data, ext)
         mime = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".svg": "image/svg+xml",
                 ".gif": "image/gif", ".webp": "image/webp"}.get(ext, "application/octet-stream")
         fid = hashlib.sha1(data).hexdigest()
@@ -325,6 +328,22 @@ class Builder:
                 "appState": {"gridSize": 20, "gridStep": 5, "gridModeEnabled": False,
                              "viewBackgroundColor": "#ffffff", "lockedMultiSelections": {}},
                 "files": self.files}
+
+
+def _check_image(path, data, ext):
+    """Refuse empty or mis-typed icon files (a missing Simple Icons slug downloads an
+    empty or HTML file) so the diagram never carries a broken image."""
+    if not data:
+        raise SystemExit(f"icon is empty: {path}")
+    head = data[:512].lstrip()
+    ok = {".svg": head.startswith(b"<svg") or head.startswith(b"<?xml"),
+          ".png": data[:8] == b"\x89PNG\r\n\x1a\n",
+          ".jpg": data[:2] == b"\xff\xd8", ".jpeg": data[:2] == b"\xff\xd8",
+          ".gif": data[:4] == b"GIF8", ".webp": data[8:12] == b"WEBP"}.get(ext)
+    if ok is None:
+        raise SystemExit(f"unsupported icon type {ext}: {path}")
+    if not ok:
+        raise SystemExit(f"icon does not look like {ext[1:].upper()} (got {data[:20]!r}): {path}")
 
 
 def _image_dims(data, ext):

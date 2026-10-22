@@ -199,6 +199,14 @@ def lint(path, font="comic", arrowhead="outline"):
         if hit:
             add("text-over-box", t, f"'{t['text'][:25]}' lies over box {hit['id']}; move the text or the arrow it labels", fixable=False)
 
+    # two component boxes overlapping (nesting, i.e. one fully inside the other, is fine)
+    for i, a in enumerate(small_boxes):
+        ab = bbox(a)
+        for b in small_boxes[i + 1:]:
+            bb = bbox(b)
+            if overlap((ab[0] + 1, ab[1] + 1, ab[2] - 1, ab[3] - 1), bb) and not inside(ab, bb) and not inside(bb, ab):
+                add("box-overlap", a, f"overlaps box {b['id']}; move one of them (builder may have widened a box)", fixable=False)
+
     # z-order: child rectangle before parent
     for c in filled_rects:
         cb = bbox(c)

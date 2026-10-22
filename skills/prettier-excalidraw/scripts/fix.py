@@ -100,9 +100,11 @@ def fix(doc, font="comic", arrowhead="outline"):
         if head + tail != els:
             changed += 1
         els = head + tail
+    import random
     for i, e in enumerate(els):
         e["index"] = "a" + format(i, "04d")
         e["version"] = e.get("version", 1) + 1
+        e["versionNonce"] = random.randint(1, 2 ** 31 - 1)   # collab clients key change detection on it
     doc["elements"] = els
     fix.big_changes = big_changes
     return changed

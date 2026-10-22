@@ -194,6 +194,35 @@ class TestLintAndFix(unittest.TestCase):
         self.assertTrue(all(e["fontFamily"] == 6 for e in doc["elements"] if e["type"] == "text"))
 
 
+class TestSmallBugs(unittest.TestCase):
+    def test_builder_rejects_bad_icon(self):
+        with tempfile.TemporaryDirectory() as td:
+            bad = os.path.join(td, "missing.svg"); open(bad, "w").write("")
+            html = os.path.join(td, "page.svg"); open(html, "w").write("<html>404</html>")
+            for icon in (bad, html, os.path.join(td, "nope.svg")):
+                spec = {"elements": [{"id": "b", "type": "box", "label": "x", "icon": icon, "x": 0, "y": 0}]}
+                with self.assertRaises(SystemExit):
+                    build.Builder(spec).build()
+
+    def test_fix_refreshes_version_nonce(self):
+        with tempfile.TemporaryDirectory() as td:
+            out = os.path.join(td, "o.excalidraw")
+            run("build.py", os.path.join(EXAMPLES, "payment.spec.json"), out)
+            doc = json.load(open(out)); before = {e["id"]: e["versionNonce"] for e in doc["elements"]}
+            fix.fix(doc)
+            self.assertTrue(all(e["versionNonce"] != before[e["id"]] for e in doc["elements"]))
+
+    def test_box_overlap_rule(self):
+        spec = {"elements": [{"id": "a", "type": "box", "label": "a", "x": 0, "y": 0, "w": 200, "h": 60},
+                             {"id": "b", "type": "box", "label": "b", "x": 150, "y": 20, "w": 200, "h": 60},
+                             {"id": "r", "type": "region", "x": -40, "y": -40, "w": 600, "h": 300},
+                             {"id": "c", "type": "box", "label": "c", "x": 20, "y": 150, "w": 200, "h": 60}]}
+        with tempfile.TemporaryDirectory() as td:
+            p = os.path.join(td, "o.excalidraw"); json.dump(build.Builder(spec).build(), open(p, "w"))
+            hits = [f for f in lint.lint(p) if f["rule"] == "box-overlap"]
+            self.assertEqual([h["id"] for h in hits], ["a"], "a/b overlap; c inside region is nesting, not overlap")
+
+
 class TestLintCli(unittest.TestCase):
     def test_allow_manual_exit_code(self):
         ref = os.path.join(EXAMPLES, "layered-architecture.excalidraw")

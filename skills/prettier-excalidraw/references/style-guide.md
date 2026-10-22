@@ -113,6 +113,7 @@ arrow. Snap to a 20 px grid.
 | arrow-through-box | a connector crosses a component box it is not bound to | manual |
 | arrow-overlap | two connectors share a collinear segment (> 20 px) | manual |
 | text-over-box | free text lies over a component box it is not bound to | manual |
+| box-overlap | two component boxes intersect without one containing the other | manual |
 | text-overlap | two text elements intersect | manual |
 | arrow-through-text | a connector segment crosses a free text element (title, caption) | manual |
 | misleading-proximity | a store (red fill) sits directly under a non-store box it has no arrow to | manual |
