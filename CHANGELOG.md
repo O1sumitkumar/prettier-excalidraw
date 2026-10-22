@@ -16,6 +16,9 @@ All notable changes to this project are documented here. The format follows
 - `build.py`: `divider` lines (horizontal or vertical, optional dashed and label)
   and `group` elements that make listed members move together (#38, @dbdefault).
 
+- Issue forms (bug, feature), a PR template with the test checklist, and
+  `size:` / `area:` labels on every open issue (#26).
+
 ### Planned
 See [ROADMAP.md](ROADMAP.md).
 

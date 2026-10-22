@@ -1,0 +1,45 @@
+name: Bug report
+description: Something produced the wrong diagram, crashed, or lint reported nonsense
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. The fastest path to a fix is a file that reproduces it.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you ran and what you got. Paste the first error line if there was one.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Spec or .excalidraw that reproduces it
+      description: Paste the spec JSON, or attach the .excalidraw file (drag it here). A minimal one beats a big one.
+      render: json
+  - type: input
+    id: command
+    attributes:
+      label: Command
+      placeholder: python3 build.py spec.json out.excalidraw --png
+  - type: input
+    id: env
+    attributes:
+      label: Environment
+      description: Python version, OS, and whether Chrome is installed. `python3 --version` and `sw_vers` / `lsb_release -a` / `ver`.
+      placeholder: Python 3.12.4, macOS 15.6, Chrome present
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which script
+      options: [build.py, lint.py, fix.py, export.py, preview.py, profile.py, icons.py, SKILL.md / the agent's behaviour, not sure]

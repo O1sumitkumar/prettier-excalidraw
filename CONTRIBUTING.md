@@ -11,6 +11,12 @@ Thanks for helping make diagrams prettier.
 - Example diagrams must be synthetic: no real hostnames, CIDRs, customer or
   project names.
 
+## Labels
+`size: S / M / L` says how big a change is (an afternoon, a few days, a week or
+more); `area: *` says which part it touches (build, lint, fix, export, convert,
+layout, skill, docs, ci, scripts). "good first issue" items have everything written
+out: what, expected, where, how to test.
+
 ## Before you start on an issue
 Comment on the issue (or assign yourself) before writing code, and check the
 latest `main` first. Several of the first pull requests arrived on the same day the

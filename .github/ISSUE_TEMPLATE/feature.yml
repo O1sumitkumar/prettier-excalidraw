@@ -1,0 +1,28 @@
+name: Feature request
+description: A new element type, rule, converter, or workflow
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What
+      description: One paragraph. What should the skill be able to do that it cannot today?
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why
+      description: The diagram you could not draw, the prompt that failed, or the workflow that was slow.
+    validations:
+      required: true
+  - type: textarea
+    id: shape
+    attributes:
+      label: Sketch of the spec or CLI shape
+      description: Optional. A JSON snippet or a command line showing how you would want to use it.
+      render: json
+  - type: markdown
+    attributes:
+      value: |
+        See [ROADMAP.md](../blob/main/ROADMAP.md) for what is already planned, and comment on an existing issue if yours is close to one.

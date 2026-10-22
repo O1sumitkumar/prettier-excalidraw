@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Roadmap
+    url: https://github.com/Raihan-009/prettier-excalidraw/blob/main/ROADMAP.md
+    about: What is planned and why, before opening a feature request.
+  - name: Good first issues
+    url: https://github.com/Raihan-009/prettier-excalidraw/issues?q=is%3Aopen+label%3A%22good+first+issue%22
+    about: Small, self-contained items with what / expected / where / how-to-test written out.
