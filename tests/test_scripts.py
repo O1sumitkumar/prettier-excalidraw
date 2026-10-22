@@ -223,6 +223,41 @@ class TestSmallBugs(unittest.TestCase):
             self.assertEqual([h["id"] for h in hits], ["a"], "a/b overlap; c inside region is nesting, not overlap")
 
 
+class TestIconFolder(unittest.TestCase):
+    def _spec(self, icon, extra=None):
+        el = {"id": "b", "type": "box", "label": "postgres\n[db]", "icon": icon, "x": 0, "y": 0}
+        return {"icons_dir": "myicons", "elements": [el], **(extra or {})}
+
+    def test_named_auto_and_missing(self):
+        with tempfile.TemporaryDirectory() as td:
+            d = os.path.join(td, "myicons"); os.makedirs(d)
+            import shutil
+            shutil.copy(os.path.join(EXAMPLES, "icons", "postgresql.svg"), os.path.join(d, "PostgreSQL.svg"))
+            shutil.copy(os.path.join(EXAMPLES, "icons", "redis.svg"), os.path.join(d, "Redis Cache.png"))
+            # explicit name, exact slug
+            doc = build.Builder(self._spec("PostgreSQL"), base_dir=td).build()
+            self.assertEqual(sum(e["type"] == "image" for e in doc["elements"]), 1)
+            # auto from the label, prefix match ("postgres" -> PostgreSQL.svg)
+            doc = build.Builder(self._spec("auto"), base_dir=td).build()
+            self.assertEqual(sum(e["type"] == "image" for e in doc["elements"]), 1)
+            # auto with no match: bare box plus a warning, not an error
+            b = build.Builder({"icons_dir": "myicons", "elements": [
+                {"id": "b", "type": "box", "label": "kafka", "icon": "auto", "x": 0, "y": 0}]}, base_dir=td)
+            doc = b.build()
+            self.assertEqual(sum(e["type"] == "image" for e in doc["elements"]), 0)
+            self.assertTrue(any("no icon for 'kafka'" in w for w in b.warnings))
+            # named but missing: hard error
+            with self.assertRaises(SystemExit):
+                build.Builder(self._spec("kafka"), base_dir=td).build()
+            # env var folder, no icons_dir in the spec; a wrong-type file (Redis Cache.png is really SVG) is refused
+            os.environ["PRETTIER_EXCALIDRAW_ICONS"] = d
+            try:
+                with self.assertRaises(SystemExit):
+                    build.Builder({"elements": [{"id": "b", "type": "box", "label": "redis cache", "icon": "auto", "x": 0, "y": 0}]}).build()
+            finally:
+                del os.environ["PRETTIER_EXCALIDRAW_ICONS"]
+
+
 class TestLintCli(unittest.TestCase):
     def test_allow_manual_exit_code(self):
         ref = os.path.join(EXAMPLES, "layered-architecture.excalidraw")

@@ -68,7 +68,11 @@ that directory (they import each other) or set `PYTHONPATH` to it.
 4. **Icons.** Add a logo for every named technology (Postgres, Kafka, Kubernetes, AWS…)
    because that is what makes an architecture diagram instantly readable. Sources, in
    order of preference:
-   - a file the user already has (ask where their icons live if they mention having some)
+   - the user's own icon folder. If they have one, put it in the spec as
+     `"icons_dir": "path"` (or set `PRETTIER_EXCALIDRAW_ICONS`) and write
+     `"icon": "auto"` on every box: the builder matches the label against the file
+     names and leaves a box bare when nothing matches. Ask where their icons live if
+     they mention having some.
    - Simple Icons as SVG: `curl -sL https://cdn.simpleicons.org/<slug> -o icons/<slug>.svg`
      (`<slug>` is the lowercase brand name, e.g. `postgresql`, `apachekafka`,
      `kubernetes`, `amazonaws`, `redis`, `grafana`). A missing slug downloads an

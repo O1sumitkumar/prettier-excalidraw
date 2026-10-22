@@ -7,9 +7,12 @@ origin top-left, y grows downward. Lay things out on a 20 px grid.
 {
   "font": "comic",          // "comic" (Comic Shanns, default) | "nunito"
   "arrowhead": "outline",   // "outline" (hollow triangle, default) | "filled"
+  "icons_dir": "icons",     // optional: folder(s) with the user's own icons, relative to the spec
   "elements": [ ... ]       // in any order; the builder sorts the z-order itself
 }
 ```
+Icon folders are searched in this order: `icons_dir` (a string or a list), then the
+`PRETTIER_EXCALIDRAW_ICONS` environment variable (several folders separated by `:`).
 
 ## Element types
 
@@ -36,7 +39,11 @@ origin top-left, y grows downward. Lay things out on a 20 px grid.
   lightgrey | white | none` or a hex colour.
 - `label` may contain `\n`; keep secondary info in `[brackets]` on line 2.
 - `size`: font size 16 | 20 (default) | 28.
-- `icon`: path relative to the spec file (svg / png / jpg). Placed on the left at
+- `icon`: a file path relative to the spec (svg / png / jpg), **or** a name looked up
+  in the icon folders (`"icon": "PostgreSQL"`), **or** `"auto"` to look up the first
+  label line. Lookup is by slug (lowercase, letters and digits only), exact first,
+  then a unique prefix match, so `"postgres"` finds `PostgreSQL.svg`. A named icon
+  that is not found stops the build; `auto` just leaves the box bare. Placed on the left at
   ~80 % of box height; the builder shrinks it to ≥ 56 % or widens the box so the
   centred label never overlaps it. `icon_h` overrides the height.
 - `w` / `h` default 240 × 70. The builder enlarges a box that cannot fit its label
@@ -48,7 +55,9 @@ origin top-left, y grows downward. Lay things out on a 20 px grid.
 {"id":"k8s","type":"image","src":"icons/kubernetes.svg","x":1080,"y":60,"h":100,
  "label":"kubernetes"}
 ```
-Give `h` or `w`; the other follows the file's aspect ratio. `label` is centred
+`src` is a path; alternatively `"icon": "kubernetes"` (or `"auto"` with a `label`)
+resolves through the icon folders like a box icon. Give `h` or `w`; the other follows
+the file's aspect ratio. `label` is centred
 below. Can be an arrow target when it has an `id`.
 
 ### text – free-standing text

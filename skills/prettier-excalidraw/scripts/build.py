@@ -62,6 +62,7 @@ class Builder:
         self.layers = {"region": [], "box": [], "image": [], "text": [], "arrow": []}
         self.by_id = {}          # spec id -> excalidraw element (the box/region/image)
         self.warnings = []
+        self.icon_dirs = icon_dirs(spec, base_dir)
 
     # ---------- public ----------
     def build(self):
@@ -102,7 +103,28 @@ class Builder:
             tx = it["x"] + it["w"] - tw - pad if right else it["x"] + pad
             self._free_text(it["subtitle"], tx, it["y"] + pad + 2, size, "left")
 
+    def _resolve_icon(self, it):
+        """Turn `icon` into a file path. A value with an extension or a slash is a path;
+        "auto" looks up the first label line in the icon folders; any other word is
+        looked up by name. Unresolved "auto" is silently skipped, a named icon that is
+        not found stops the build."""
+        ref = it.get("icon")
+        if not ref:
+            return None
+        if "/" in ref or os.sep in ref or ref.lower().endswith(ICON_EXTS):
+            return ref
+        name = it.get("label", "").split("\n")[0] if ref == "auto" else ref
+        path = find_icon(name, self.icon_dirs)
+        if path is None:
+            if ref == "auto":
+                self.warnings.append(f"box {it.get('id')}: no icon for '{name}' in {self.icon_dirs or 'no icon folders'}")
+                return None
+            raise SystemExit(f"icon '{ref}' not found in icon folders {self.icon_dirs or '(none configured)'}; "
+                             f"set icons_dir in the spec or PRETTIER_EXCALIDRAW_ICONS, or give a file path")
+        return path
+
     def add_box(self, it):
+        it = dict(it, icon=self._resolve_icon(it))
         fill = FILLS.get(it.get("fill", "blue"), it.get("fill", "#a5d8ff"))
         size = it.get("size", 20)
         w, h = it.get("w", 240), it.get("h", 70)
@@ -146,7 +168,10 @@ class Builder:
             self._image(it["icon"], it["x"] + 12, it["y"] + (h - icon_h) / 2, None, icon_h, group=e)
 
     def add_image(self, it):
-        e = self._image(it["src"], it["x"], it["y"], it.get("w"), it.get("h", 120), spec_id=it.get("id"))
+        src = it.get("src") or self._resolve_icon(dict(it, label=it.get("label", "")))
+        if not src:
+            raise SystemExit(f"image {it.get('id')}: give `src` or a resolvable `icon`")
+        e = self._image(src, it["x"], it["y"], it.get("w"), it.get("h", 120), spec_id=it.get("id"))
         if it.get("label"):
             size = it.get("size", 20)
             tw, th = text_size(it["label"], self.font, size)
@@ -328,6 +353,44 @@ class Builder:
                 "appState": {"gridSize": 20, "gridStep": 5, "gridModeEnabled": False,
                              "viewBackgroundColor": "#ffffff", "lockedMultiSelections": {}},
                 "files": self.files}
+
+
+ICON_EXTS = (".svg", ".png", ".jpg", ".jpeg", ".webp", ".gif")
+
+
+def slug(text):
+    import re
+    return re.sub(r"[^a-z0-9]", "", text.lower())
+
+
+def icon_dirs(spec, base_dir):
+    """Folders to look for icons in: spec `icons_dir` (string or list, relative to the
+    spec) then PRETTIER_EXCALIDRAW_ICONS (os.pathsep-separated)."""
+    dirs = spec.get("icons_dir") or []
+    if isinstance(dirs, str):
+        dirs = [dirs]
+    dirs = [d if os.path.isabs(d) else os.path.join(base_dir, d) for d in dirs]
+    env = os.environ.get("PRETTIER_EXCALIDRAW_ICONS", "")
+    dirs += [d for d in env.split(os.pathsep) if d]
+    return [d for d in dirs if os.path.isdir(d)]
+
+
+def find_icon(name, dirs):
+    """Match a name against the files in the icon folders by slug: exact first, then a
+    unique prefix match either way ("postgres" finds PostgreSQL.svg). None if no match."""
+    want = slug(name)
+    if not want:
+        return None
+    files = []
+    for d in dirs:
+        for f in sorted(os.listdir(d)):
+            if f.lower().endswith(ICON_EXTS):
+                files.append((slug(os.path.splitext(f)[0]), os.path.join(d, f)))
+    exact = [p for s_, p in files if s_ == want]
+    if exact:
+        return exact[0]
+    loose = [p for s_, p in files if s_.startswith(want) or want.startswith(s_)]
+    return loose[0] if len(loose) == 1 else None
 
 
 def _check_image(path, data, ext):

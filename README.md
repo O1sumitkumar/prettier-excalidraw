@@ -41,9 +41,10 @@ git clone https://github.com/Raihan-009/prettier-excalidraw.git
 ln -s "$PWD/prettier-excalidraw/skills/prettier-excalidraw" ~/.claude/skills/prettier-excalidraw
 ```
 
-Requirements: Python 3.10+. The scripts use the standard library only. Logos are
-fetched from [Simple Icons](https://simpleicons.org) when the skill needs one and
-you have not supplied your own.
+Requirements: Python 3.10+. The scripts use the standard library only. Point the
+skill at your own logo folder with `PRETTIER_EXCALIDRAW_ICONS=/path/to/icons` (or
+`"icons_dir"` in a spec) and it matches icons to labels by name; otherwise logos are
+fetched from [Simple Icons](https://simpleicons.org).
 
 ## Try it
 

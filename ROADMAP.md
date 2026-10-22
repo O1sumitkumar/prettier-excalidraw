@@ -85,7 +85,7 @@ components and the rule "no icon rather than a wrong icon" leaves gaps.
 MIT-licensed Excalidraw libraries, attribution in the file), scale and place them
 like images, keep them grouped and exempt from the roughness rule.
 
-### 4.2 User-supplied icon folder  (S)
+### 4.2 User-supplied icon folder  (S) — done
 `"icons_dir"` in the spec or a `PRETTIER_EXCALIDRAW_ICONS` environment variable;
 match by label slug before falling back to Simple Icons.
 

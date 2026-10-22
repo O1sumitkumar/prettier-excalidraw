@@ -12,6 +12,9 @@ All notable changes to this project are documented here. The format follows
   image next to the `.excalidraw` file (roadmap 1.1, #15).
 
 - `lint.py`: `box-overlap` - two component boxes intersecting (#3).
+- `build.py`: user icon folders. `"icons_dir"` in the spec or
+  `PRETTIER_EXCALIDRAW_ICONS`; `"icon": "PostgreSQL"` looks a name up by slug and
+  `"icon": "auto"` matches the label, leaving the box bare when nothing fits (#20).
 
 ### Fixed
 - `build.py` refuses empty, missing or mis-typed icon files instead of embedding
