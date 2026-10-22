@@ -6,6 +6,12 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+- SKILL.md description rewritten for triggering: leads with the condition
+  ("deliverable is an Excalidraw file"), names the three jobs and the formats it
+  is not for. Measured on a 20-query set: held-out 7/8 vs 6/8 before, no false
+  triggers either way (#14).
+
 ### Planned
 See [ROADMAP.md](ROADMAP.md).
 
