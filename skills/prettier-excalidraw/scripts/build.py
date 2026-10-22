@@ -16,7 +16,8 @@ Standard library only.
 """
 import base64, hashlib, json, math, os, random, struct, sys, time
 from exstyle import (ARROW_COLORS, ARROWHEADS, CHAR_W, FILLS, FONT_IDS, ICON_MIN_CONTRAST, LINE_H, STYLE, TINTS,
-                     area, contrast, darken_to_contrast, load_style, size, style_from_argv)
+                     area, contrast, darken_to_contrast, load_style, style_from_argv)
+from exstyle import size as default_size
 
 _ALPHABET = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
@@ -86,7 +87,7 @@ class Builder:
             e["strokeStyle"] = "dotted"; e["opacity"] = 60; e["strokeWidth"] = 1
         self._register(it, e, "region")
         if it.get("title"):
-            size = it.get("size", size("default"))
+            size = it.get("size", default_size("default"))
             tw, th = text_size(it["title"], self.font, size)
             pos = it.get("title_pos", "top-left")
             pad = 16
@@ -102,7 +103,7 @@ class Builder:
             self._free_text(it["title"], tx, ty, size, "center" if "center" in pos else "left")
         if it.get("subtitle"):
             # secondary note in the opposite top corner from the title, size 16
-            size = it.get("subtitle_size", size("small"))
+            size = it.get("subtitle_size", default_size("small"))
             tw, th = text_size(it["subtitle"], self.font, size)
             pad = 16
             right = it.get("title_pos", "top-left") != "top-right"
@@ -132,7 +133,7 @@ class Builder:
     def add_box(self, it):
         it = dict(it, icon=self._resolve_icon(it))
         fill = FILLS.get(it.get("fill", "blue"), it.get("fill", "#a5d8ff"))
-        size = it.get("size", size("default"))
+        size = it.get("size", default_size("default"))
         w, h = it.get("w", 240), it.get("h", 70)
         tw, th = text_size(it.get("label", ""), self.font, size)
         if th + 16 > h:
@@ -181,13 +182,13 @@ class Builder:
         e = self._image(src, it["x"], it["y"], it.get("w"), it.get("h", 120), spec_id=it.get("id"),
                         icon_color=it.get("icon_color"))
         if it.get("label"):
-            size = it.get("size", size("default"))
+            size = it.get("size", default_size("default"))
             tw, th = text_size(it["label"], self.font, size)
             self._free_text(it["label"], e["x"] + (e["width"] - tw) / 2, e["y"] + e["height"] + 8, size, "center")
         self._register(it, e, None)
 
     def add_text(self, it):
-        size = it.get("size", size("default"))
+        size = it.get("size", default_size("default"))
         color = ARROW_COLORS.get(it.get("color", "black"), it.get("color", STYLE["stroke"]))
         self._free_text(it["text"], it["x"], it["y"], size, it.get("align", "left"), color=color)
 
@@ -217,7 +218,7 @@ class Builder:
         dst["boundElements"].append({"id": e["id"], "type": "arrow"})
         self.layers["arrow"].append(e)
         if it.get("label"):
-            size = it.get("size", size("small"))
+            size = it.get("size", default_size("small"))
             tw, th = text_size(it["label"], self.font, size)
             (mx, my), vertical = self._label_anchor(pts, it.get("label_at", "mid"))
             if vertical:
