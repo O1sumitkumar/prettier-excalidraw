@@ -252,6 +252,19 @@ def lint(path, font=None, arrowhead=None):
             if overlap((ab[0] + 1, ab[1] + 1, ab[2] - 1, ab[3] - 1), bb) and not inside(ab, bb) and not inside(bb, ab):
                 add("box-overlap", a, f"overlaps box {b['id']}; move one of them", fixable=False)
 
+    # a free text sitting on a region's border line is half inside, half outside: unreadable
+    regions = [r for r in els if r["type"] == "rectangle" and area(bbox(r)) >= 60000]
+    for t in free_text:
+        tb = bbox(t)
+        for r in regions:
+            rb = bbox(r)
+            crosses_h = (tb[1] < rb[1] < tb[3] or tb[1] < rb[3] < tb[3]) and tb[0] < rb[2] and tb[2] > rb[0]
+            crosses_v = (tb[0] < rb[0] < tb[2] or tb[0] < rb[2] < tb[2]) and tb[1] < rb[3] and tb[3] > rb[1]
+            if crosses_h or crosses_v:
+                add("text-on-region-edge", t, f"'{t['text'][:25]}' sits on the border of region {r['id']}; "
+                    f"move it inside or outside (label_at, or shift the arrow)", fixable=False)
+                break
+
     # z-order: child rectangle before parent
     for c in filled_rects:
         cb = bbox(c)

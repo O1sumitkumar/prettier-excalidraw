@@ -124,6 +124,41 @@ def grade(eval_name, run_dir, inputs_dir):
         shp = [e for e in els if e["type"] in ("rectangle","ellipse","diamond")]
         E("no hachure / cross-hatch fills on shapes", (not any(e.get("fillStyle") in ("hachure","cross-hatch") for e in shp), "fillStyles: " + str({e.get("fillStyle") for e in shp})))
         E("notes.md written", (os.path.exists(os.path.join(out,"notes.md")), "present" if os.path.exists(os.path.join(out,"notes.md")) else "missing"))
+    elif eval_name.startswith("eval-3") or eval_name.startswith("eval-4") or eval_name.startswith("eval-5"):
+        from lint import lint as run_lint
+        fname = {"eval-3": "platform-large.excalidraw", "eval-4": "incident-flow.excalidraw", "eval-5": "layered-flow.excalidraw"}[eval_name[:6]]
+        p = os.path.join(out, fname)
+        if not os.path.exists(p): return [{"text": f"{fname} exists", "passed": False, "evidence": "missing"}]
+        d, els = load(p)
+        findings = run_lint(p)
+        collisions = [f for f in findings if f["rule"] in ("box-overlap", "arrow-through-box", "arrow-through-text", "text-overlap", "text-over-box", "arrow-overlap")]
+        E(f"{fname} exists and is valid", (d.get("type") == "excalidraw" and len(els) > 5, f"{len(els)} elements"))
+        E("lint: no fixable style findings", (not [f for f in findings if f["fixable"]], f"{len([f for f in findings if f['fixable']])} fixable"))
+        E("lint: no layout collisions (overlap / through-box / through-text)", (not collisions, f"{len(collisions)} collisions: " + ", ".join(sorted({c['rule'] for c in collisions}))))
+        E("single font family", one_font(els)); E("roughness 0 on non-icon elements", roughness_zero(els))
+        E("no arrow hidden behind a filled box", no_hidden_arrows(els)); E("containers before children", children_after_parents(els))
+        if eval_name.startswith("eval-3"):
+            words = ["cloudflare","gateway","auth","orders","inventory","pricing","catalog","cart","checkout","payments","shipping","notifications","search","postgres","redis","elasticsearch","kafka","s3","stripe","sendgrid","twilio","fedex","grafana","prometheus","jaeger"]
+            t = " ".join(texts(els)); missing = [w for w in words if w not in t]
+            E("all 25 named components labelled", (not missing, "missing: " + ", ".join(missing) if missing else "all present"))
+            regions = [e for e in els if e["type"] == "rectangle" and area(bbox(e)) >= 60000]
+            E("at least 4 grouping regions", (len(regions) >= 4, f"{len(regions)} regions"))
+            E("at least 3 embedded logos", (sum(1 for e in els if e["type"] == "image") >= 3, f"{sum(1 for e in els if e['type']=='image')} images"))
+            arrows = [e for e in els if e["type"] == "arrow" and e.get("endArrowhead")]
+            E("at least 15 connector arrows, all bound at both ends", (len(arrows) >= 15 and all(a.get("startBinding") and a.get("endBinding") for a in arrows), f"{len(arrows)} arrows, {sum(1 for a in arrows if not (a.get('startBinding') and a.get('endBinding')))} unbound"))
+        if eval_name.startswith("eval-4"):
+            E("at least 2 diamonds (decisions)", (sum(1 for e in els if e["type"] == "diamond") >= 2, f"{sum(1 for e in els if e['type']=='diamond')} diamonds"))
+            E("at least 2 ellipses (start / end / markers)", (sum(1 for e in els if e["type"] == "ellipse") >= 2, f"{sum(1 for e in els if e['type']=='ellipse')} ellipses"))
+            notes = [e for e in els if e["type"] == "rectangle" and e.get("backgroundColor") == "#e9ecef" and e.get("strokeWidth") == 1]
+            E("a note element carries the SLA", (bool(notes) and has_label(els, "15 min"), f"{len(notes)} notes; sla text present: {has_label(els, '15 min')}"))
+            E("all steps labelled", (has_label(els, "alert", "customer", "page", "ticket", "known", "runbook", "incident call", "mitigate", "postmortem"), " | ".join(texts(els))[:200]))
+        if eval_name.startswith("eval-5"):
+            ok, ev, layers = stacked_layers(els)
+            E("three stacked tinted layers", (ok, ev))
+            E("layers visually distinct", (ok and len({l.get("backgroundColor") for l in layers[:3]}) == 3, ev))
+            E("request path present (browser, cdn, waf, load balancer, api, worker, object storage, postgres)", (has_label(els, "browser", "cdn", "waf", "load balancer", "api", "worker", "object storage", "postgres"), " | ".join(texts(els))[:200]))
+            arrows = [e for e in els if e["type"] == "arrow" and e.get("endArrowhead")]
+            E("at least 7 connector arrows crossing between layers", (len(arrows) >= 7, f"{len(arrows)} arrows"))
     else:
         p = os.path.join(out, "platform.excalidraw")
         if not os.path.exists(p): return [{"text":"platform.excalidraw exists","passed":False,"evidence":"missing"}]

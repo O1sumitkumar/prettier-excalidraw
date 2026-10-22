@@ -70,6 +70,18 @@ that directory (they import each other) or set `PYTHONPATH` to it.
    yes/no markers, actors) and `note` (a caption or caveat in a light-grey box) next to
    boxes and regions, plus `divider` lines and `group`s that move together; see
    `references/spec-format.md` for their shape.
+   Sizes and placement rules the builder follows, so you can plan without previewing:
+   - box width needed: `11 px × label length + 32`, or `+ 2 × (icon height + 20)` with an
+     icon (default icon height is 80 % of the box, 56 px for a 70 px box, so about
+     `label × 11 + 152`); the builder widens on the 20 px grid when short
+   - children start 60 px below a region's top edge (title row) and 30-40 px in from
+     its sides; region tints are blue, teal, yellow, orange, purple, red; a "green"
+     layer uses the teal tint with green boxes
+   - `from_offset` / `to_offset` are px along the side from its centre, positive to
+     the right or down; keep them equal for a straight arrow
+   - a label goes above the longest horizontal segment or to the right of the longest
+     vertical one; `label_at: start | end` picks the first or last segment instead;
+     make sure that segment is not on a region border (`text-on-region-edge`)
    Give every box and region an `id`; arrows reference those ids. Pick `from_side` /
    `to_side` so an arrow leaves a box on the side that faces its target and does not
    cross other boxes; use `from_offset` / `to_offset` to fan out several arrows from one

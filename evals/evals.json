@@ -54,6 +54,24 @@
     "light fills, none dark behind text",
     "at least one embedded logo image"
    ]
+  },
+  {
+   "id": 3,
+   "prompt": "draw an excalidraw diagram of our order platform, save as platform-large.excalidraw. edge: cloudflare, api gateway, auth service. core services (kubernetes): orders, inventory, pricing, catalog, cart, checkout, payments, shipping, notifications, search. data: postgres (orders), postgres (catalog), redis (cart), elasticsearch (search), kafka (events), s3 (invoices). external: stripe, sendgrid, twilio, fedex api. ops: grafana, prometheus, jaeger. flows: user -> cloudflare -> gateway -> auth, gateway -> cart/checkout/catalog/search; checkout -> orders -> payments -> stripe; orders -> kafka -> inventory/shipping/notifications; notifications -> sendgrid + twilio; shipping -> fedex; search <- elasticsearch <- catalog; invoices to s3; all services -> prometheus. keep it clean and readable.",
+   "expected_output": "26 named components in 5 groups, readable, no collisions",
+   "files": []
+  },
+  {
+   "id": 4,
+   "prompt": "make an excalidraw flowchart for our incident process, save as incident-flow.excalidraw: start at 'alert fires'. decision: is it customer facing? yes -> page on-call, no -> create ticket. after paging: decision: known issue? yes -> apply runbook, no -> start incident call -> mitigate. both paths end at 'postmortem within 48h' then end. add a note somewhere saying the SLA is 15 min to acknowledge, 1h to mitigate for sev1.",
+   "expected_output": "diamonds for decisions, ellipses for start/end, a note, lint clean",
+   "files": []
+  },
+  {
+   "id": 5,
+   "prompt": "excalidraw diagram, save as layered-flow.excalidraw: three horizontal layers top to bottom - edge (cdn, waf, load balancer), application (web app, api, worker), data (postgres, redis, object storage). then draw the request path for an image upload across the layers: browser -> cdn -> waf -> load balancer -> api -> worker -> object storage, with the api also writing metadata to postgres. colour code the layers and keep arrows readable.",
+   "expected_output": "three stacked tinted layers with a request path crossing them without hitting titles",
+   "files": []
   }
  ]
 }

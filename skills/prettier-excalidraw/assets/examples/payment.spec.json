@@ -80,7 +80,7 @@
    "type": "arrow",
    "from": "app",
    "to": "gw",
-   "label": "https / json"
+   "label": "https"
   },
   {
    "type": "arrow",

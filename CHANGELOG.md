@@ -23,6 +23,10 @@ All notable changes to this project are documented here. The format follows
   runs the tests, zips the skill and creates the GitHub release with the changelog
   section as notes; `tools/release_notes.py` runs the same check locally (#34).
 
+- `lint.py`: `text-on-region-edge` for labels straddling a region border; SKILL.md
+  gains the sizing and placement rules of thumb (box width, title inset, offsets,
+  label placement) that iteration-3 test runs asked for.
+
 ### Planned
 See [ROADMAP.md](ROADMAP.md).
 

@@ -167,7 +167,7 @@
    "type": "arrow",
    "from": "orders",
    "to": "kafka",
-   "label": "publish order events",
+   "label": "publishes",
    "color": "blue",
    "from_side": "right",
    "to_side": "left",
@@ -177,7 +177,7 @@
    "type": "arrow",
    "from": "kafka",
    "to": "worker",
-   "label": "consume order events",
+   "label": "consumes",
    "color": "blue",
    "from_side": "bottom",
    "to_side": "top"
