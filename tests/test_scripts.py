@@ -297,6 +297,41 @@ class TestSmallBugs(unittest.TestCase):
             hits = [f for f in lint.lint(p) if f["rule"] == "box-overlap"]
             self.assertEqual([h["id"] for h in hits], ["a"], "a/b overlap; c inside region is nesting, not overlap")
 
+    def test_box_overlap_cell_grid_on_strip(self):
+        """Four equal tiny cells overhanging a strip are a grid, not collisions (#54)."""
+        def rect(eid, x, y, w, h, fill="#a5d8ff"):
+            return {"id": eid, "type": "rectangle", "x": x, "y": y, "width": w, "height": h,
+                    "backgroundColor": fill, "strokeColor": "#1e1e1e", "fillStyle": "solid",
+                    "roughness": 0, "strokeStyle": "solid", "strokeWidth": 2, "roundness": None,
+                    "isDeleted": False, "boundElements": []}
+
+        strip = rect("strip", 0, 100, 400, 40, "#ffec99")
+        cells = [rect(f"c{i}", 20 + i * 90, 95, 50, 50) for i in range(4)]
+        with tempfile.TemporaryDirectory() as td:
+            # strip first (correct z-order): no box-overlap, no child-before-parent
+            p = os.path.join(td, "grid.excalidraw")
+            json.dump({"type": "excalidraw", "version": 2, "elements": [strip] + cells},
+                      open(p, "w", encoding="utf-8"))
+            findings = lint.lint(p)
+            self.assertEqual([f for f in findings if f["rule"] == "box-overlap"], [])
+            self.assertEqual([f for f in findings if f["rule"] == "child-before-parent"], [])
+
+            # cells drawn before strip: strip is still their container for z-order
+            p2 = os.path.join(td, "z.excalidraw")
+            json.dump({"type": "excalidraw", "version": 2, "elements": cells + [strip]},
+                      open(p2, "w", encoding="utf-8"))
+            zhits = [f for f in lint.lint(p2) if f["rule"] == "child-before-parent"]
+            self.assertEqual({h["id"] for h in zhits}, {"c0", "c1", "c2", "c3"})
+            self.assertTrue(all("strip" in h["message"] for h in zhits))
+
+            # a real collision next to the grid still fires
+            collision = rect("boom", 30, 90, 80, 60, "#ffc9c9")
+            p3 = os.path.join(td, "mix.excalidraw")
+            json.dump({"type": "excalidraw", "version": 2, "elements": [strip] + cells + [collision]},
+                      open(p3, "w", encoding="utf-8"))
+            ohits = [f for f in lint.lint(p3) if f["rule"] == "box-overlap"]
+            self.assertTrue(any(h["id"] == "boom" or "boom" in h["message"] for h in ohits))
+
 
 class TestIconFolder(unittest.TestCase):
     def _spec(self, icon, extra=None):
