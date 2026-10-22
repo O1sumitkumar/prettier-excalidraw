@@ -47,6 +47,10 @@ def lint(path, font="comic", arrowhead="outline"):
 
     filled_rects = [e for e in els if e["type"] == "rectangle"
                     and e.get("backgroundColor") not in (None, "transparent")]
+    # elements that some bound arrow starts from: a headless arrow ending on one of these
+    # is the first half of a split branch (diamond -> "yes" circle -> target), not a mistake
+    arrow_sources = {e["startBinding"]["elementId"] for e in els
+                     if e["type"] == "arrow" and e.get("startBinding")}
 
     for e in els:
         t = e["type"]
@@ -74,7 +78,9 @@ def lint(path, font="comic", arrowhead="outline"):
         if t == "arrow":
             head = e.get("endArrowhead")
             if head is None and e.get("startArrowhead") is None and not in_icon:
-                add("no-arrowhead", e, "arrow has no arrowhead (is it a connector?)", fixable=False)
+                ends_on = (e.get("endBinding") or {}).get("elementId")
+                if ends_on not in arrow_sources:
+                    add("no-arrowhead", e, "arrow has no arrowhead (is it a connector?)", fixable=False)
             elif head is not None and head != want_head:
                 add("arrowhead", e, f"endArrowhead={head} (want {want_head})")
             if e.get("startArrowhead") not in (None, want_head):

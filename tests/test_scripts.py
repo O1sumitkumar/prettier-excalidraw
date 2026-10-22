@@ -287,6 +287,28 @@ class TestIconContrast(unittest.TestCase):
             self.assertIn("icon-low-contrast", {f["rule"] for f in lint.lint(p)})
 
 
+class TestSplitBranchArrows(unittest.TestCase):
+    def test_continuation_is_not_flagged(self):
+        spec = {"elements": [{"id": "d", "type": "box", "label": "ok?", "x": 0, "y": 0},
+                             {"id": "yes", "type": "box", "label": "yes", "x": 400, "y": 0, "w": 80, "h": 40},
+                             {"id": "t", "type": "box", "label": "target", "x": 700, "y": 0},
+                             {"type": "arrow", "from": "d", "to": "yes"},
+                             {"type": "arrow", "from": "yes", "to": "t"}]}
+        doc = build.Builder(spec).build()
+        arrows = [e for e in doc["elements"] if e["type"] == "arrow"]
+        first = next(a for a in arrows if a["endBinding"]["elementId"] == "yes")
+        last = next(a for a in arrows if a["endBinding"]["elementId"] == "t")
+        with tempfile.TemporaryDirectory() as td:
+            p = os.path.join(td, "o.excalidraw")
+            first["endArrowhead"] = None                      # first half of a branch: fine
+            json.dump(doc, open(p, "w"))
+            self.assertEqual([f for f in lint.lint(p) if f["rule"] == "no-arrowhead"], [])
+            last["endArrowhead"] = None                       # a real headless connector: flagged
+            json.dump(doc, open(p, "w"))
+            hits = [f for f in lint.lint(p) if f["rule"] == "no-arrowhead"]
+            self.assertEqual([h["id"] for h in hits], [last["id"]])
+
+
 class TestLintCli(unittest.TestCase):
     def test_allow_manual_exit_code(self):
         ref = os.path.join(EXAMPLES, "layered-architecture.excalidraw")

@@ -20,6 +20,8 @@ All notable changes to this project are documented here. The format follows
   `"icon": "auto"` matches the label, leaving the box bare when nothing fits (#20).
 
 ### Fixed
+- `lint.py` no longer flags `no-arrowhead` on the first half of a split branch
+  arrow (diamond → "yes" circle → target) (#4).
 - `build.py` refuses empty, missing or mis-typed icon files instead of embedding
   a broken image (#1).
 - `fix.py` refreshes `versionNonce` along with `version` so collaborative

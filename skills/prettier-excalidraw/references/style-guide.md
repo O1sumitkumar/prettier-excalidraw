@@ -106,7 +106,7 @@ arrow. Snap to a 20 px grid.
 | arrow-hidden | arrow drawn before a filled box it crosses | yes (moves arrows last) |
 | child-before-parent | box drawn before its container | yes |
 | dark-fill-text | text on a fill too dark to read | manual |
-| no-arrowhead | arrow with no head (probably a line) | manual |
+| no-arrowhead | arrow with no head, unless it ends on an element another arrow continues from | manual |
 | unbound-arrow | endpoint touches a box but is not bound | manual |
 | icon-size | icon outside 55–100 % of its box height | manual |
 | icon-stretched | image scale ≠ [1, 1] | manual |
