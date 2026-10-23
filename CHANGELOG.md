@@ -6,13 +6,17 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Planned
+See [ROADMAP.md](ROADMAP.md).
+
+## [0.5.0] - 2026-10-23
+
 ### Added
 - Replicate a diagram from a shared image: `references/reading-a-diagram.md`
   (extraction checklist, mapping to the house style, what to drop, the
   "changes from the original" note) and a replicate workflow in SKILL.md; worked
   example `assets/examples/clickstream.*` rebuilt from
   `docs/examples/source-clickstream.png` (#16).
-
 - Auto-layout foundation (#9): design note `scripts/layout/README.md` with the
   stage contracts, the shared graph model `layout/graph.py` (spec → nodes, edges,
   containers; explicit coordinates recorded as fixed), spec keys `layout` and
@@ -20,19 +24,17 @@ All notable changes to this project are documented here. The format follows
 - Auto-layout stage 1 (#48): `layout/rank.py` — longest-path ranks per
   container (sources at rank 0), cycles broken by dropping the back edge
   found last, isolated nodes at rank 0; `TestRank` tests in
-  `tests/test_layout.py`.
+  `tests/test_layout.py` (#63, @rahul05ranjan).
 - Auto-layout stage 2 (#49): `layout/order.py` — barycentre sweeps (down
   then up) order each rank, keeping the candidate with the fewest edge
-  crossings (`crossings()` helper); `TestOrder` tests in `tests/test_layout.py`.
+  crossings (`crossings()` helper); `TestOrder` tests in `tests/test_layout.py`
+  (#64, @rahul05ranjan).
 
 ### Changed
 - SKILL.md description rewritten for triggering: leads with the condition
   ("deliverable is an Excalidraw file"), names the three jobs and the formats it
   is not for. Measured on a 20-query set: held-out 7/8 vs 6/8 before, no false
   triggers either way (#14).
-
-### Planned
-See [ROADMAP.md](ROADMAP.md).
 
 ## [0.4.0] - 2026-10-22
 
