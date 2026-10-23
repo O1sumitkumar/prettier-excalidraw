@@ -114,6 +114,8 @@ svg{display:block;max-width:100%;height:auto;margin:0 auto;background:#fff}
 /* flow: dashes travel along the line in the arrow's direction; heads stay solid */
 @keyframes flow{to{stroke-dashoffset:-36}}
 svg.flowing .arrow:not([data-flow=off]) .line{stroke-dasharray:14 10;animation:flow 1s linear infinite}
+/* a double-headed arrow claims no direction: its dashes go back and forth instead */
+svg.flowing .arrow[data-bidirectional] .line{animation-direction:alternate;animation-duration:1.6s}
 /* hover: the shape lifts, what it touches stays, the rest fades */
 .box,.region,.image{transition:opacity .15s}
 .box:hover>rect,.box:hover>ellipse,.box:hover>polygon{filter:brightness(.92);stroke-width:3}

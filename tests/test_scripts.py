@@ -677,6 +677,7 @@ class TestHtmlExport(unittest.TestCase):
             self.assertTrue(h.startswith("<!doctype html>"))
             self.assertIn("<svg", h)
             self.assertIn("@keyframes flow", h)
+            self.assertIn("[data-bidirectional] .line{animation-direction:alternate", h)
             self.assertIsNone(re.search(r'<(script|link|img)[^>]+(src|href)="https?://', h), "page must not load from the network")
             self.assertIn('id="paths" type="application/json">{}</script>', h)
 
