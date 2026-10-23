@@ -15,20 +15,19 @@ Ask for a diagram in plain language and get a `.excalidraw` file that opens in
 consistent. Point it at an existing diagram and it normalises the style without
 moving anything.
 
-## What it does
+## Features
 
-| You say | The skill does |
+| Feature | What you get |
 |---|---|
-| "draw an excalidraw diagram of X" | Asks about anything the prompt leaves open (who uses that database?), writes a spec, builds the file, previews it, lints it, delivers it with a colour key |
-| "make this .excalidraw consistent / prettier" | `lint` → `fix` → `lint`, then tells you what still needs a human |
-| "does this follow the style?" | Runs the linter and explains each finding |
-| "redo this diagram in our style" with a picture | Reads the picture with a fixed checklist, rebuilds it, and lists what changed |
-
-The style was derived by measuring a set of real diagrams (839 elements) rather
-than invented, so the rules have numbers behind them. See
-[the style guide](skills/prettier-excalidraw/references/style-guide.md). Prefer your
-own style? `profile.py` measures a folder of your diagrams and writes a profile the
-scripts use instead.
+| **Generate** a diagram from a sentence | A `.excalidraw` file in the house style: boxes, regions, elbow arrows, bound labels, real logos, correct z-order, a colour key. The skill asks about anything the prompt leaves open (who owns the database? does Stripe call back?) before drawing |
+| **Replicate** a diagram from a picture | Paste a screenshot or vendor diagram; it is read with a fixed checklist, rebuilt in your style, and delivered with a note listing what was renamed, merged or dropped |
+| **Restyle** an existing file | `lint → fix → lint` on any `.excalidraw`: font, sizes, roughness, fills, corners, arrowheads and z-order are corrected without moving a single shape, then you are told what still needs a human |
+| **Lint** against the style | 24 checks with element ids, from "wrong font" to "arrow hidden behind a box" and "text sitting on a region edge"; `--json` for tooling, exit code for CI |
+| **Export** PNG or SVG | `--png` / `--svg` at build time or `export.py` on any file; the real Comic Shanns / Nunito fonts are embedded, so the image matches Excalidraw exactly |
+| **Shapes** beyond boxes | `diamond` decisions, `ellipse` start/end/actor markers, `note` captions, `divider` lines, `group`s that move together, dashed boxes and arrows, bidirectional arrows |
+| **Real logos**, sized right | Icons matched to labels by name from your own folder or fetched from [Simple Icons](https://simpleicons.org) with the brand colour; scaled to 65–95 % of the box, never stretched, darkened automatically when the contrast on a fill is too low |
+| **Your own style** | `profile.py` measures a folder of your diagrams (font, sizes, fills, arrow colours...) and writes a profile every script accepts in place of the house style |
+| **Layout direction** | `"layout": "lr"` or `"tb"` on a spec; full auto-layout (no coordinates at all) is in progress, see [#9](https://github.com/Raihan-009/prettier-excalidraw/issues/9) |
 
 ## Install
 
@@ -63,6 +62,42 @@ produce this:
 
 ![payment diagram](skills/prettier-excalidraw/assets/examples/payment.png)
 
+## Usage
+
+Everything below is a prompt to Claude Code once the skill is installed. The skill
+triggers on "excalidraw" plus a verb; you do not need to name it.
+
+```
+draw an excalidraw diagram of our checkout: web app -> api gateway -> orders
+service -> postgres, with a kafka topic for order events. save as checkout.excalidraw
+```
+
+```
+redo this diagram in our excalidraw style, excalidraw plus png     (attach the image)
+```
+
+```
+make payment.excalidraw consistent with the style guide
+```
+
+```
+does infra.excalidraw follow the excalidraw style? list the findings
+```
+
+```
+export checkout.excalidraw as a png at 2x
+```
+
+```
+use the logos in ./brand-icons for this excalidraw diagram
+```
+
+```
+measure my diagrams in ~/diagrams and use that style instead of the house style
+```
+
+Each of these maps to one or two of the scripts below, which you can also run by hand.
+
 ## The style, in one screen
 
 | | |
@@ -82,11 +117,12 @@ All in `skills/prettier-excalidraw/scripts/`, run from that directory.
 | Script | Purpose |
 |---|---|
 | `build.py spec.json out.excalidraw` | JSON spec → diagram. Handles bound labels, elbow routing, bindings, icon embedding, z-order |
-| `lint.py file.excalidraw` | 15 style checks with element ids. `--font nunito`, `--arrowhead filled`, `--json` |
+| `lint.py file.excalidraw` | 24 style checks with element ids. `--font nunito`, `--arrowhead filled`, `--json`, `--allow-manual` for CI gates on hand-drawn files |
 | `fix.py in out` | Mechanical fixes: font, sizes, roughness, fills, corners, heads, z-order. Never moves anything |
 | `preview.py file out.svg [--square]` | SVG render with exact text widths, for checking layout without Excalidraw |
 | `profile.py folder -o style.json` | Measure your own diagrams and write a style profile; pass `--style style.json` to the other scripts to use it instead of the house style |
 | `export.py file out.png\|out.svg [--scale 2]` | Shareable image with the real fonts embedded; Chrome or macOS quick-look for PNG. `build.py ... --png` does it in one step |
+| `icons.py search fly` / `icons.py fetch postgresql apachekafka -o icons/` | Find and download brand logos from Simple Icons with the brand colour applied |
 
 The spec format is documented in
 [spec-format.md](skills/prettier-excalidraw/references/spec-format.md). A full
