@@ -1,19 +1,24 @@
 #!/usr/bin/env python3
-"""Check a .excalidraw file against the prettier-excalidraw style guide.
+"""Check .excalidraw files against the prettier-excalidraw style guide.
 
 Usage:
     python3 lint.py diagram.excalidraw [--font comic|nunito] [--arrowhead outline|filled]
                                        [--json] [--allow-manual] [--style style.json]
+    python3 lint.py docs/diagrams/ other.excalidraw ... [--quiet]
 
-Exit code 0 = clean, 1 = violations found. With --allow-manual, findings that need a
-human (marked "(manual)") are still printed but do not affect the exit code, which is
-what a CI gate on hand-drawn reference diagrams wants. Each finding names the element id so
-it can be located in the JSON. Library icons (groups of >= 3 hand-drawn parts
-without text) are exempt from the roughness rule, because the Excalidraw
-library ships them sketchy on purpose and they still read fine.
-Standard library only.
+A directory is searched recursively for *.excalidraw (hidden folders, node_modules and
+__pycache__ are skipped). With more than one file the output is one line per file, the
+findings of the files that have any, and a totals line; --quiet keeps only the per-file
+lines and the totals. Exit code 0 = every file clean, 1 = violations found. With
+--allow-manual, findings that need a human (marked "(manual)") are still printed but do
+not affect the exit code, which is what a CI gate on hand-drawn reference diagrams wants.
+Each finding names the element id so it can be located in the JSON. Library icons
+(groups of >= 3 hand-drawn parts without text) are exempt from the roughness rule,
+because the Excalidraw library ships them sketchy on purpose and they still read fine.
+--json prints the findings list for one file, or {"files": [...], "summary": {...}} for
+several. Standard library only.
 """
-import json, sys
+import json, os, sys
 from collections import Counter
 from exstyle import (ARROWHEADS, FONT_IDS, FONT_NAMES, FONT_SIZES, ICON_MIN_CONTRAST, STYLE, area, bbox, contrast,
                      inside, is_light, overlap, style_from_argv)
@@ -360,28 +365,111 @@ def lint(path, font=None, arrowhead=None):
     return out
 
 
+SKIP_DIRS = {"node_modules", "__pycache__"}
+
+
+def collect(paths):
+    """Expand files and directories to a sorted list of .excalidraw files (directories recursively)."""
+    out = []
+    for p in paths:
+        if os.path.isdir(p):
+            for root, dirs, files in os.walk(p):
+                dirs[:] = sorted(d for d in dirs if not d.startswith(".") and d not in SKIP_DIRS)
+                out += sorted(os.path.join(root, f) for f in files if f.lower().endswith(".excalidraw"))
+        else:
+            out.append(p)
+    seen = set()
+    return [p for p in out if not (p in seen or seen.add(p))]
+
+
+def lint_many(paths, font=None, head=None):
+    """[(path, findings | None, error | None)] for every file under `paths`."""
+    out = []
+    for p in collect(paths):
+        try:
+            out.append((p, lint(p, font, head), None))
+        except Exception as ex:  # unreadable, not JSON, not an Excalidraw file
+            out.append((p, None, f"{ex.__class__.__name__}: {ex}"))
+    return out
+
+
+def _print_findings(findings):
+    for f in findings:
+        print(f"  [{f['rule']}] {f['type']} {f['id']}: {f['message']}" + ("" if f["fixable"] else "  (manual)"))
+
+
 def main():
     args = sys.argv[1:]
     if not args or args[0] in ("-h", "--help"):
         print(__doc__); sys.exit(0 if args else 2)
     style_from_argv(args)
-    font = args[args.index("--font") + 1] if "--font" in args else None
-    head = args[args.index("--arrowhead") + 1] if "--arrowhead" in args else None
-    as_json = "--json" in args
-    allow_manual = "--allow-manual" in args
-    path = args[0]
-    findings = lint(path, font, head)
-    blocking = [f for f in findings if f["fixable"]] if allow_manual else findings
+    valued = {"--font", "--arrowhead", "--style"}
+    opts, paths, i = {}, [], 0
+    while i < len(args):
+        a = args[i]
+        if a in valued:
+            opts[a] = args[i + 1]; i += 2
+        elif a.startswith("--"):
+            opts[a] = True; i += 1
+        else:
+            paths.append(a); i += 1
+    if not paths:
+        print(__doc__); sys.exit(2)
+    font, head = opts.get("--font"), opts.get("--arrowhead")
+    as_json, allow_manual, quiet = "--json" in opts, "--allow-manual" in opts, "--quiet" in opts
+
+    results = lint_many(paths, font, head)
+    if not results:
+        print("no .excalidraw files found under " + ", ".join(paths)); sys.exit(2)
+    single = len(results) == 1 and results[0][0] == paths[0] and not os.path.isdir(paths[0])
+
+    def blocking(findings):
+        return [f for f in findings if f["fixable"]] if allow_manual else findings
+
+    if single:
+        path, findings, error = results[0]
+        if error:
+            print(f"{path}: error {error}"); sys.exit(1)
+        if as_json:
+            print(json.dumps(findings, indent=1))
+        elif not findings:
+            print(f"{path}: clean")
+        else:
+            counts = Counter(f["rule"] for f in findings)
+            print(f"{path}: {len(findings)} findings  " + ", ".join(f"{k}×{v}" for k, v in counts.most_common()))
+            _print_findings(findings)
+        sys.exit(1 if blocking(findings) else 0)
+
+    failed = 0
+    rows = []
+    for path, findings, error in results:
+        if error:
+            failed += 1; rows.append({"path": path, "error": error, "findings": []})
+        else:
+            if blocking(findings):
+                failed += 1
+            rows.append({"path": path, "findings": findings})
+    clean = sum(1 for r in rows if not r.get("error") and not r["findings"])
+    summary = {"files": len(rows), "clean": clean, "with_findings": len(rows) - clean, "failed": failed}
     if as_json:
-        print(json.dumps(findings, indent=1))
-    else:
-        if not findings:
-            print(f"{path}: clean"); sys.exit(0)
-        counts = Counter(f["rule"] for f in findings)
-        print(f"{path}: {len(findings)} findings  " + ", ".join(f"{k}×{v}" for k, v in counts.most_common()))
-        for f in findings:
-            print(f"  [{f['rule']}] {f['type']} {f['id']}: {f['message']}" + ("" if f["fixable"] else "  (manual)"))
-    sys.exit(1 if blocking else 0)
+        print(json.dumps({"files": rows, "summary": summary}, indent=1))
+        sys.exit(1 if failed else 0)
+    for r in rows:
+        if r.get("error"):
+            print(f"{r['path']}: error {r['error']}")
+        elif not r["findings"]:
+            print(f"{r['path']}: clean")
+        else:
+            manual = sum(1 for f in r["findings"] if not f["fixable"])
+            print(f"{r['path']}: {len(r['findings'])} findings" + (f" ({manual} manual)" if manual else ""))
+    if not quiet:
+        for r in rows:
+            if r["findings"]:
+                print(f"\n{r['path']}")
+                _print_findings(r["findings"])
+    print(f"\n{summary['files']} files, {clean} clean, {summary['with_findings']} with findings"
+          + (f", {failed} failing" if failed else ""))
+    sys.exit(1 if failed else 0)
 
 
 if __name__ == "__main__":

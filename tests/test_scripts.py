@@ -2,7 +2,7 @@
 
 Run:  python3 -m unittest discover -s tests -v
 """
-import copy, glob, json, os, re, subprocess, sys, tempfile, unittest
+import copy, glob, json, os, re, shutil, subprocess, sys, tempfile, unittest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SKILL = os.path.join(ROOT, "skills", "prettier-excalidraw")
@@ -624,6 +624,70 @@ class TestLintCli(unittest.TestCase):
         self.assertEqual(run("lint.py", ref).returncode, 1, "reference has manual findings")
         self.assertEqual(run("lint.py", ref, "--allow-manual").returncode, 0)
         self.assertEqual(run("lint.py", os.path.join(EXAMPLES, "payment.excalidraw")).returncode, 0)
+
+
+class TestLintFolder(unittest.TestCase):
+    """lint.py over directories and several paths (#65)."""
+
+    def _tree(self, td):
+        src = os.path.join(EXAMPLES, "payment.excalidraw")
+        os.makedirs(os.path.join(td, "nested", ".hidden"))
+        os.makedirs(os.path.join(td, "node_modules"))
+        shutil.copy(src, os.path.join(td, "a-clean.excalidraw"))
+        shutil.copy(src, os.path.join(td, "nested", "c-clean.excalidraw"))
+        shutil.copy(src, os.path.join(td, "nested", ".hidden", "skipped.excalidraw"))
+        shutil.copy(src, os.path.join(td, "node_modules", "skipped.excalidraw"))
+        d = json.load(open(src, encoding="utf-8"))
+        for e in d["elements"]:
+            if e["type"] == "rectangle":
+                e["roughness"] = 1
+        json.dump(d, open(os.path.join(td, "b-sketchy.excalidraw"), "w", encoding="utf-8"))
+        open(os.path.join(td, "notes.txt"), "w").write("not a diagram")
+        return td
+
+    def test_collect_walks_recursively_and_skips_noise(self):
+        with tempfile.TemporaryDirectory() as td:
+            self._tree(td)
+            found = [os.path.relpath(p, td) for p in lint.collect([td])]
+            self.assertEqual(found, ["a-clean.excalidraw", "b-sketchy.excalidraw", os.path.join("nested", "c-clean.excalidraw")])
+
+    def test_folder_summary_and_exit_code(self):
+        with tempfile.TemporaryDirectory() as td:
+            self._tree(td)
+            r = run("lint.py", td)
+            self.assertEqual(r.returncode, 1, r.stdout)
+            lines = r.stdout.splitlines()
+            self.assertTrue(lines[0].endswith("a-clean.excalidraw: clean"), lines[0])
+            self.assertIn("b-sketchy.excalidraw: 7 findings", lines[1])
+            self.assertIn("[roughness]", r.stdout)
+            self.assertTrue(r.stdout.rstrip().endswith("3 files, 2 clean, 1 with findings, 1 failing"), r.stdout[-200:])
+            q = run("lint.py", td, "--quiet")
+            self.assertNotIn("[roughness]", q.stdout)
+            self.assertIn("3 files, 2 clean, 1 with findings", q.stdout)
+
+    def test_folder_json_shape(self):
+        with tempfile.TemporaryDirectory() as td:
+            self._tree(td)
+            r = run("lint.py", td, "--json")
+            data = json.loads(r.stdout)
+            self.assertEqual(data["summary"], {"files": 3, "clean": 2, "with_findings": 1, "failed": 1})
+            self.assertEqual([len(f["findings"]) for f in data["files"]], [0, 7, 0])
+
+    def test_mixed_file_and_folder_and_unreadable(self):
+        with tempfile.TemporaryDirectory() as td:
+            self._tree(td)
+            bad = os.path.join(td, "broken.excalidraw"); open(bad, "w").write("{not json")
+            r = run("lint.py", os.path.join(EXAMPLES, "payment.excalidraw"), os.path.join(td, "nested"), bad)
+            self.assertEqual(r.returncode, 1)
+            self.assertIn("broken.excalidraw: error", r.stdout)
+            self.assertIn("3 files, 2 clean", r.stdout)
+
+    def test_single_file_output_is_unchanged(self):
+        r = run("lint.py", os.path.join(EXAMPLES, "payment.excalidraw"))
+        self.assertEqual(r.returncode, 0)
+        self.assertEqual(r.stdout.strip().splitlines(), [os.path.join(EXAMPLES, "payment.excalidraw") + ": clean"])
+        j = run("lint.py", os.path.join(EXAMPLES, "payment.excalidraw"), "--json")
+        self.assertEqual(json.loads(j.stdout), [])
 
 
 class TestExport(unittest.TestCase):

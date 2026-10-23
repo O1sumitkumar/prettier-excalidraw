@@ -6,6 +6,16 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- `lint.py` takes directories and several paths (#65): every `.excalidraw` under a
+  folder is checked recursively, with one summary line per file, the findings of
+  the files that have any, a totals line, `--quiet`, and a `{"files", "summary"}`
+  shape for `--json`. The exit code fails when any file has a blocking finding.
+- Reusable GitHub workflow `.github/workflows/lint-diagrams.yml`: any repository
+  can lint its diagrams folder on every pull request with one `uses:` line
+  (inputs `paths`, `allow-manual`, `style`, `ref`). This repository's CI runs it
+  against the shipped examples.
+
 ### Planned
 See [ROADMAP.md](ROADMAP.md).
 

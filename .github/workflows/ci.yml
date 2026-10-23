@@ -35,3 +35,11 @@ jobs:
               *)                      python lint.py "$f" ;;
             esac
           done
+
+  # the reusable workflow, run against this repository's own examples folder
+  diagrams:
+    uses: ./.github/workflows/lint-diagrams.yml
+    with:
+      paths: skills/prettier-excalidraw/assets/examples
+      allow-manual: true
+      ref: ${{ github.event.pull_request.head.sha || github.sha }}
