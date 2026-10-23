@@ -30,6 +30,10 @@ moving anything.
 | **Your own style** | `profile.py` measures a folder of your diagrams (font, sizes, fills, arrow colours...) and writes a profile every script accepts in place of the house style |
 | **Layout direction** | `"layout": "lr"` or `"tb"` on a spec; full auto-layout (no coordinates at all) is in progress, see [#9](https://github.com/Raihan-009/prettier-excalidraw/issues/9) |
 
+![the animated HTML export: arrows flow, hovering the payment service lights up its connections, and the checkout path plays one arrow at a time](docs/animated-export.gif)
+
+*`build.py payment.spec.json payment.excalidraw --html`: arrows flow, hover shows a shape's connections, a button plays a named path.*
+
 ## Install
 
 Inside Claude Code:

@@ -1,6 +1,19 @@
 {
  "font": "comic",
  "arrowhead": "outline",
+ "paths": {
+  "checkout": [
+   "app",
+   "gw",
+   "pay",
+   "stripe"
+  ],
+  "webhook": [
+   "stripe",
+   "pay",
+   "db"
+  ]
+ },
  "elements": [
   {
    "id": "backend",
