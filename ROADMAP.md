@@ -19,6 +19,19 @@ Excalidraw uses. Make it faithful rather than rough: embed Comic Shanns / Nunito
 dashed / dotted strokes properly, then rasterise with headless Chrome when present
 and fall back to quick-look on macOS. Keep stdlib only.
 
+### 1.2 Animated, hoverable HTML export  (M) — #67, with `link` on shapes #66
+**What.** `export.py diagram.excalidraw out.html`: the same SVG as 1.1 wrapped in a
+single page where arrows flow in their direction, hovering a shape lights up its
+connections and fades the rest, a button plays a request path one arrow at a time,
+and shapes with a `link` open it. `"link"` also lands in the `.excalidraw` file,
+where Excalidraw shows it on hover.
+**Why.** The `.excalidraw` file is the editable source and cannot animate; a docs
+page or a demo wants motion and click-through. Same layout and fonts, so the two
+never disagree.
+**How.** Group each element in the exported SVG with its id and arrow bindings
+(`data-from` / `data-to`), then ~25 lines of CSS and ~20 of script. Proven in a
+throwaway page on the payment example; #67 has the CSS.
+
 ## 2. Input formats
 
 ### 2.1 Replicate a diagram from a shared image  (M) — done
