@@ -71,10 +71,17 @@ Same as a generated diagram, plus a short **changes from the original** note:
 
 The note is what lets the user trust the rebuild without comparing every box.
 
-## Worked example
+## Worked examples
 
 `docs/examples/source-clickstream.png` is a vendor-style pipeline diagram (dark
 theme, gradients, curved arrows, subtitles crammed into labels). Its rebuild is
 `assets/examples/clickstream.spec.json` → `clickstream.excalidraw` /
 `clickstream.png`, with the extraction and the changes note in
 `docs/examples/clickstream-notes.md`.
+
+`assets/examples/netns.spec.json` → `netns.excalidraw` / `netns.png` rebuilds a
+Linux network-namespace tutorial picture (nested dashed boxes, colour used for
+namespace membership, floating IP addresses, one-way arrow pairs, no logos). The
+notes in `docs/examples/netns-notes.md` show the colour-to-tint mapping, the
+arrow-pair merge, and a region title moved out of an arrow's way after the
+linter caught it.

@@ -6,6 +6,12 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- Second replicate-from-image worked example: `assets/examples/netns.*`, a Linux
+  network-namespace tutorial picture rebuilt with nested regions, a note and
+  double-headed arrows; extraction and changes note in
+  `docs/examples/netns-notes.md`.
+
 ### Planned
 See [ROADMAP.md](ROADMAP.md).
 

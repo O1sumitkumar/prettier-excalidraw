@@ -153,6 +153,7 @@ example:
 | [payment](skills/prettier-excalidraw/assets/examples/payment.spec.json) | stores under their owner, webhook return arrow |
 | [flowchart](skills/prettier-excalidraw/assets/examples/flowchart.spec.json) | diamond decision node and ellipse start/yes/no markers |
 | [clickstream](skills/prettier-excalidraw/assets/examples/clickstream.spec.json) | a vendor-style picture ([source](docs/examples/source-clickstream.png)) rebuilt in house style; [how it was read](docs/examples/clickstream-notes.md) |
+| [netns](skills/prettier-excalidraw/assets/examples/netns.spec.json) | a Linux network-namespace tutorial picture rebuilt in house style: nested regions, a note box, double-headed arrows, no logos; [how it was read](docs/examples/netns-notes.md) |
 | [layered-architecture](skills/prettier-excalidraw/assets/examples/layered-architecture.excalidraw) | a hand-drawn reference diagram the style was measured from |
 
 ## Evaluation

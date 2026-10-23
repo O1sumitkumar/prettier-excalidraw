@@ -1,0 +1,193 @@
+{
+ "font": "comic",
+ "arrowhead": "outline",
+ "elements": [
+  {
+   "id": "server",
+   "type": "region",
+   "title": "[ linux server ]",
+   "title_pos": "top-right",
+   "x": 0,
+   "y": 0,
+   "w": 1100,
+   "h": 780,
+   "tint": "none"
+  },
+  {
+   "id": "ns0",
+   "type": "region",
+   "title": "[ netns0 ]",
+   "x": 60,
+   "y": 60,
+   "w": 420,
+   "h": 200,
+   "tint": "yellow"
+  },
+  {
+   "id": "ns0lo",
+   "type": "box",
+   "label": "lo0",
+   "x": 100,
+   "y": 140,
+   "w": 120,
+   "h": 70,
+   "fill": "green",
+   "size": 16
+  },
+  {
+   "id": "ceth0",
+   "type": "box",
+   "label": "ceth0\n[172.18.0.10/16]",
+   "x": 240,
+   "y": 140,
+   "w": 220,
+   "h": 70,
+   "fill": "green",
+   "size": 16
+  },
+  {
+   "id": "ns1",
+   "type": "region",
+   "title": "[ netns1 ]",
+   "x": 620,
+   "y": 60,
+   "w": 420,
+   "h": 200,
+   "tint": "yellow"
+  },
+  {
+   "id": "ns1lo",
+   "type": "box",
+   "label": "lo0",
+   "x": 660,
+   "y": 140,
+   "w": 120,
+   "h": 70,
+   "fill": "green",
+   "size": 16
+  },
+  {
+   "id": "ceth1",
+   "type": "box",
+   "label": "ceth1\n[172.18.0.20/16]",
+   "x": 800,
+   "y": 140,
+   "w": 220,
+   "h": 70,
+   "fill": "green",
+   "size": 16
+  },
+  {
+   "id": "root",
+   "type": "region",
+   "title": "[ root network namespace ]",
+   "x": 60,
+   "y": 320,
+   "w": 980,
+   "h": 420,
+   "tint": "blue",
+   "title_pos": "top-center"
+  },
+  {
+   "id": "veth0",
+   "type": "box",
+   "label": "veth0\n[no ip address]",
+   "x": 240,
+   "y": 380,
+   "w": 220,
+   "h": 70,
+   "fill": "green",
+   "size": 16
+  },
+  {
+   "id": "veth1",
+   "type": "box",
+   "label": "veth1\n[no ip address]",
+   "x": 800,
+   "y": 380,
+   "w": 220,
+   "h": 70,
+   "fill": "green",
+   "size": 16
+  },
+  {
+   "id": "br0",
+   "type": "box",
+   "label": "br0\n[172.18.0.1/16]",
+   "x": 440,
+   "y": 540,
+   "w": 220,
+   "h": 70,
+   "fill": "green",
+   "size": 16
+  },
+  {
+   "id": "rootlo",
+   "type": "box",
+   "label": "lo0",
+   "x": 100,
+   "y": 640,
+   "w": 120,
+   "h": 60,
+   "fill": "green",
+   "size": 16
+  },
+  {
+   "id": "eth0",
+   "type": "box",
+   "label": "eth0",
+   "x": 240,
+   "y": 640,
+   "w": 120,
+   "h": 60,
+   "fill": "green",
+   "size": 16
+  },
+  {
+   "type": "note",
+   "text": "routing table\n172.18.0.0/16 via br0",
+   "x": 760,
+   "y": 620,
+   "w": 240
+  },
+  {
+   "type": "arrow",
+   "from": "ceth0",
+   "to": "veth0",
+   "bidirectional": true,
+   "from_side": "bottom",
+   "to_side": "top"
+  },
+  {
+   "type": "arrow",
+   "from": "ceth1",
+   "to": "veth1",
+   "bidirectional": true,
+   "from_side": "bottom",
+   "to_side": "top"
+  },
+  {
+   "type": "arrow",
+   "from": "veth0",
+   "to": "br0",
+   "bidirectional": true,
+   "from_side": "bottom",
+   "to_side": "left"
+  },
+  {
+   "type": "arrow",
+   "from": "veth1",
+   "to": "br0",
+   "bidirectional": true,
+   "from_side": "bottom",
+   "to_side": "right"
+  },
+  {
+   "type": "text",
+   "text": "yellow = container namespace \u00b7 blue = root namespace \u00b7 green = network interface",
+   "x": 0,
+   "y": 810,
+   "size": 16
+  }
+ ]
+}
