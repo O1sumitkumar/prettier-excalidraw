@@ -17,6 +17,10 @@ All notable changes to this project are documented here. The format follows
   stage contracts, the shared graph model `layout/graph.py` (spec → nodes, edges,
   containers; explicit coordinates recorded as fixed), spec keys `layout` and
   `in`, and `tests/test_layout.py` with placeholders per stage.
+- Auto-layout stage 1 (#48): `layout/rank.py` — longest-path ranks per
+  container (sources at rank 0), cycles broken by dropping the back edge
+  found last, isolated nodes at rank 0; `TestRank` tests in
+  `tests/test_layout.py`.
 
 ### Changed
 - SKILL.md description rewritten for triggering: leads with the condition
