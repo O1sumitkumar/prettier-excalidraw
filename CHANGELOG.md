@@ -21,6 +21,9 @@ All notable changes to this project are documented here. The format follows
   container (sources at rank 0), cycles broken by dropping the back edge
   found last, isolated nodes at rank 0; `TestRank` tests in
   `tests/test_layout.py`.
+- Auto-layout stage 2 (#49): `layout/order.py` — barycentre sweeps (down
+  then up) order each rank, keeping the candidate with the fewest edge
+  crossings (`crossings()` helper); `TestOrder` tests in `tests/test_layout.py`.
 
 ### Changed
 - SKILL.md description rewritten for triggering: leads with the condition
