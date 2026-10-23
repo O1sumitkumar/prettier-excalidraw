@@ -6,6 +6,11 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Planned
+See [ROADMAP.md](ROADMAP.md).
+
+## [0.6.0] - 2026-10-24
+
 ### Added
 - Animated HTML export (#67): `export.py diagram.excalidraw out.html` and
   `build.py --html` write one self-contained page from the same SVG, with arrows
@@ -18,9 +23,13 @@ All notable changes to this project are documented here. The format follows
   network-namespace tutorial picture rebuilt with nested regions, a note and
   double-headed arrows; extraction and changes note in
   `docs/examples/netns-notes.md`.
+- README: a features table with one row per capability, a usage section with one
+  prompt per job, and a GIF of the animated export; `payment.spec.json` names two
+  `paths` so the page is reproducible from the repo.
 
-### Planned
-See [ROADMAP.md](ROADMAP.md).
+### Fixed
+- HTML export: double-headed arrows pulse back and forth instead of flowing in
+  the direction they happened to be drawn.
 
 ## [0.5.0] - 2026-10-23
 
