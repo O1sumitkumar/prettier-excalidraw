@@ -7,6 +7,13 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- Animated HTML export (#67): `export.py diagram.excalidraw out.html` and
+  `build.py --html` write one self-contained page from the same SVG, with arrows
+  flowing in their direction, hover lighting a shape's connections, play buttons
+  for named request paths, and linked shapes opening on click. `preview.render_svg`
+  gains `groups=True` (one `<g>` per element with id, kind and arrow bindings; the
+  plain output is unchanged). New spec keys `flow: false` (arrow), `tooltip`
+  (shape) and top-level `paths`, stored as `customData` so the file stays valid.
 - Second replicate-from-image worked example: `assets/examples/netns.*`, a Linux
   network-namespace tutorial picture rebuilt with nested regions, a note and
   double-headed arrows; extraction and changes note in

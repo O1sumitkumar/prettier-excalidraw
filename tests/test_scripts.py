@@ -2,7 +2,7 @@
 
 Run:  python3 -m unittest discover -s tests -v
 """
-import copy, glob, json, os, subprocess, sys, tempfile, unittest
+import copy, glob, json, os, re, subprocess, sys, tempfile, unittest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SKILL = os.path.join(ROOT, "skills", "prettier-excalidraw")
@@ -640,6 +640,75 @@ class TestExport(unittest.TestCase):
             r = run("build.py", os.path.join(EXAMPLES, "payment.spec.json"), out, "--svg")
             self.assertEqual(r.returncode, 0, r.stderr)
             self.assertTrue(os.path.exists(os.path.join(td, "o.svg")))
+
+
+class TestHtmlExport(unittest.TestCase):
+    """export.py --html: grouped SVG plus a self-contained page (#67)."""
+
+    def _doc(self):
+        with open(os.path.join(EXAMPLES, "payment.excalidraw"), encoding="utf-8") as f:
+            return json.load(f)
+
+    def test_plain_svg_has_no_groups(self):
+        from preview import render_svg
+        self.assertNotIn("<g ", render_svg(self._doc()))
+
+    def test_grouped_svg_has_one_group_per_element(self):
+        from preview import render_svg
+        d = self._doc()
+        svg = render_svg(d, groups=True)
+        live = [e for e in d["elements"] if not e.get("isDeleted")]
+        self.assertEqual(svg.count("<g "), len(live))
+        self.assertEqual(svg.count("</g>"), len(live))
+        for e in live:
+            if e["type"] == "arrow" and e.get("startBinding") and e.get("endBinding"):
+                self.assertIn(f'data-from="{e["startBinding"]["elementId"]}" data-to="{e["endBinding"]["elementId"]}"', svg)
+        # a bound label points at its container; a box with a [bracketed] second line gets a tooltip
+        self.assertIn('class="label" data-for="cache"', svg)
+        self.assertIn('<g id="cache" class="box"><title>idempotency keys</title>', svg)
+        self.assertIn('<g id="backend" class="region">', svg)
+
+    def test_html_export_is_self_contained(self):
+        with tempfile.TemporaryDirectory() as td:
+            out = os.path.join(td, "p.html")
+            r = run("export.py", os.path.join(EXAMPLES, "payment.excalidraw"), out, "--no-fonts")
+            self.assertEqual(r.returncode, 0, r.stderr)
+            h = open(out, encoding="utf-8").read()
+            self.assertTrue(h.startswith("<!doctype html>"))
+            self.assertIn("<svg", h)
+            self.assertIn("@keyframes flow", h)
+            self.assertIsNone(re.search(r'<(script|link|img)[^>]+(src|href)="https?://', h), "page must not load from the network")
+            self.assertIn('id="paths" type="application/json">{}</script>', h)
+
+    def test_build_html_with_flow_tooltip_and_paths(self):
+        spec = {"paths": {"checkout": ["a", "b"]}, "elements": [
+            {"id": "a", "type": "box", "label": "app", "x": 0, "y": 0, "fill": "grey", "tooltip": "ios and android"},
+            {"id": "b", "type": "box", "label": "api\n[rest]", "x": 400, "y": 0},
+            {"type": "arrow", "from": "a", "to": "b", "label": "https"},
+            {"type": "arrow", "from": "b", "to": "a", "flow": False, "bend": 160},
+        ]}
+        with tempfile.TemporaryDirectory() as td:
+            sp = os.path.join(td, "s.json"); out = os.path.join(td, "o.excalidraw")
+            json.dump(spec, open(sp, "w", encoding="utf-8"))
+            r = run("build.py", sp, out, "--html")
+            self.assertEqual(r.returncode, 0, r.stderr)
+            d = json.load(open(out, encoding="utf-8"))
+            custom = [(e["type"], e["customData"]) for e in d["elements"] if e.get("customData")]
+            self.assertEqual(custom, [("rectangle", {"tooltip": "ios and android"}), ("arrow", {"flow": False})])
+            h = open(os.path.join(td, "o.html"), encoding="utf-8").read()
+            self.assertEqual(h.count('data-flow="off"'), 1)
+            self.assertIn("<title>ios and android</title>", h)
+            self.assertIn("<title>rest</title>", h)
+            self.assertIn('{"checkout": ["a", "b"]}', h)
+
+    def test_bad_paths_are_refused(self):
+        spec = {"paths": {"x": ["only-one"]}, "elements": [{"id": "a", "type": "box", "label": "a", "x": 0, "y": 0}]}
+        with tempfile.TemporaryDirectory() as td:
+            sp = os.path.join(td, "s.json")
+            json.dump(spec, open(sp, "w", encoding="utf-8"))
+            r = run("build.py", sp, os.path.join(td, "o.excalidraw"), "--html")
+            self.assertNotEqual(r.returncode, 0)
+            self.assertIn("paths must be", r.stderr)
 
 
 class TestPreview(unittest.TestCase):

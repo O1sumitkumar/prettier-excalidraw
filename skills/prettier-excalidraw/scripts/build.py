@@ -2,9 +2,10 @@
 """Build a .excalidraw file from a small JSON spec, in the prettier-excalidraw style.
 
 Usage:
-    python3 build.py spec.json out.excalidraw [--png] [--svg] [--style style.json]
+    python3 build.py spec.json out.excalidraw [--png] [--svg] [--html] [--style style.json]
 
---png / --svg also write out.png / out.svg next to the diagram (see export.py).
+--png / --svg / --html also write out.png / out.svg / out.html next to the diagram
+(see export.py; the HTML page animates arrows and reacts to hover).
 
 The spec describes WHAT is in the diagram (regions, boxes, icons, arrows) and
 WHERE; this script takes care of every stylistic property (font, roughness,
@@ -31,6 +32,18 @@ def _seed():
 
 
 _now = int(time.time() * 1000)
+
+
+def _custom(it, e):
+    """Presentation hints Excalidraw keeps but ignores (`customData`), read by export.py --html:
+    `flow: false` on an arrow stops its flow animation; `tooltip` on a shape sets the hover text."""
+    data = {}
+    if it.get("flow") is False:
+        data["flow"] = False
+    if it.get("tooltip"):
+        data["tooltip"] = str(it["tooltip"])
+    if data:
+        e["customData"] = dict(e.get("customData") or {}, **data)
 
 
 def _base(etype, x, y, w, h, **kw):
@@ -325,6 +338,7 @@ class Builder:
                   startIsSpecial=None, endIsSpecial=None)
         if it.get("dashed"):
             e["strokeStyle"] = "dashed"
+        _custom(it, e)
         src["boundElements"].append({"id": e["id"], "type": "arrow"})
         dst["boundElements"].append({"id": e["id"], "type": "arrow"})
         self.layers["arrow"].append(e)
@@ -343,6 +357,7 @@ class Builder:
             self.by_id[it["id"]] = e
         if layer:
             self.layers[layer].append(e)
+        _custom(it, e)
 
     def _free_text(self, text, x, y, size, align, color=None):
         color = color or STYLE["stroke"]
@@ -607,11 +622,12 @@ def main():
     if b.darkened:
         print("icons darkened for contrast (set icon_color to override): " + "; ".join(b.darkened))
     print(f"wrote {out}: {len(doc['elements'])} elements, {len(doc['files'])} embedded images")
-    for flag, ext in (("--svg", ".svg"), ("--png", ".png")):
+    for flag, ext in (("--svg", ".svg"), ("--png", ".png"), ("--html", ".html")):
         if flag in flags:
-            from export import export
+            from export import export, paths_from_spec
             target = os.path.splitext(out)[0] + ext
-            print(f"wrote {target} ({export(out, target)})")
+            paths = paths_from_spec(spec_path) if ext == ".html" else None
+            print(f"wrote {target} ({export(out, target, paths=paths)})")
 
 
 if __name__ == "__main__":

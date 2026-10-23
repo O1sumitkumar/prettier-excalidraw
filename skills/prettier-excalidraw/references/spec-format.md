@@ -58,6 +58,9 @@ Icon folders are searched in this order: `icons_dir` (a string or a list), then 
 - `w` / `h` default 240 × 70. Labels get 16 px of padding each side; the builder
   enlarges a box that cannot fit its label (more than 4 px short) and prints a warning - treat warnings as a cue to adjust the layout.
 - `dashed: true`, `stroke_width`.
+- `tooltip`: hover text in the HTML export. Without it the label's `[bracketed]`
+  second line is used. Stored as `customData.tooltip`. Also accepted on `region`,
+  `diamond`, `ellipse`, `note` and `image`.
 
 ### diamond – a decision node with a bound centred label
 ```json
@@ -159,6 +162,8 @@ supports.
   one; `label_at: "start" | "end"` moves it to the first / last segment.
 - `color`: `black` (default) | `red` | `green` | `blue` | hex. The label takes the
   arrow's colour.
+- `flow: false` stops this arrow's flow animation in the HTML export (a webhook or
+  a rarely used path). Stored as `customData.flow`; Excalidraw ignores it.
 
 ## Z-order produced
 regions and shapes (box / diamond / ellipse) sorted by area (largest first, so
@@ -178,6 +183,24 @@ See `assets/examples/temporal.spec.json` and the `.excalidraw` it builds.
 shareable image: exact layout, the real Comic Shanns / Nunito fonts embedded (fetched
 once and cached), rasterised with Chrome when installed or quick-look on macOS.
 `build.py spec.json out.excalidraw --png` does the same in one step.
+
+## Exporting an animated page
+`export.py diagram.excalidraw out.html` (or `build.py ... --html`) writes one
+self-contained HTML file: the same SVG, where arrows flow in their direction, hovering
+a shape lights up its arrows and neighbours and fades the rest, a button plays a request
+path one arrow at a time, and a shape with an Excalidraw `link` opens it on click.
+Nothing is loaded from the network when the page is viewed, and the animation is off
+for readers who prefer reduced motion. The `.excalidraw` file stays static: Excalidraw
+itself cannot animate, so this is the presentation copy, not the source.
+
+Three optional spec keys shape the page:
+- `"flow": false` on an arrow (above) keeps it still.
+- `"tooltip"` on a shape (above) sets the hover text.
+- top-level `"paths": {"checkout": ["app", "gw", "pay", "stripe"]}` gives one play
+  button per named path; ids are the shapes in order, and a bidirectional arrow may be
+  walked either way. Without `paths` the page offers one button that starts at the
+  first box nothing points to and follows the arrows. For an existing file, pass the
+  spec with `export.py ... out.html --spec spec.json`.
 
 ## Rendering a quick preview
 `preview.py` writes a lighter SVG without fonts, for layout checks. To look at it:

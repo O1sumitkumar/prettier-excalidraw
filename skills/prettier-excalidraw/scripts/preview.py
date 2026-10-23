@@ -16,10 +16,13 @@ from exstyle import bbox
 FONT_CSS = {8: "'Comic Shanns', 'Comic Mono', monospace", 6: "'Nunito', sans-serif"}
 
 
-def render_svg(d, square=False, fonts=None):
+def render_svg(d, square=False, fonts=None, groups=False):
     """Return the SVG text for an Excalidraw document.
-    fonts: {family-name: [woff2 bytes, ...]} to embed as @font-face (see export.py)."""
+    fonts: {family-name: [woff2 bytes, ...]} to embed as @font-face (see export.py).
+    groups: wrap each element in <g id=... class=... data-...> so a page can style and
+    script it (see export.py --html); the drawing itself is identical either way."""
     els = [e for e in d["elements"] if not e.get("isDeleted")]
+    byid = {e["id"]: e for e in els}
     files = d.get("files", {})
     xs0, ys0, xs1, ys1 = zip(*(bbox(e) for e in els))
     pad = 40
@@ -34,6 +37,8 @@ def render_svg(d, square=False, fonts=None):
              f'viewBox="{minx} {miny} {maxx-minx} {maxy-miny}" width="{maxx-minx}" height="{maxy-miny}">',
              f'<rect x="{minx}" y="{miny}" width="{maxx-minx}" height="{maxy-miny}" fill="#fff"/>']
     for e in els:
+        if groups:
+            parts.append(_group_open(e, byid))
         t = e["type"]; op = e.get("opacity", 100) / 100
         sc = e.get("strokeColor", "#1e1e1e"); sw = e.get("strokeWidth", 2)
         dash = {"dotted": f'stroke-dasharray="{sw*1.5} {sw*3}"', "dashed": f'stroke-dasharray="{sw*4} {sw*3}"'}.get(e.get("strokeStyle"), "")
@@ -68,7 +73,8 @@ def render_svg(d, square=False, fonts=None):
             if len(pts) < 2: continue
             fill = e.get("backgroundColor", "transparent") if t == "line" and len(pts) > 2 else "none"
             fill = "none" if fill == "transparent" else fill
-            parts.append(f'<polyline points="{" ".join(f"{x},{y}" for x, y in pts)}" fill="{fill}" stroke="{sc}" stroke-width="{sw}" opacity="{op}" stroke-linejoin="round" {dash}/>')
+            cls = ' class="line"' if groups else ""
+            parts.append(f'<polyline{cls} points="{" ".join(f"{x},{y}" for x, y in pts)}" fill="{fill}" stroke="{sc}" stroke-width="{sw}" opacity="{op}" stroke-linejoin="round" {dash}/>')
             for key, idx, prev in (("endArrowhead", -1, -2), ("startArrowhead", 0, 1)):
                 head = e.get(key)
                 if head and t == "arrow":
@@ -82,6 +88,8 @@ def render_svg(d, square=False, fonts=None):
                         parts.append(f'<polyline points="{a1[0]},{a1[1]} {x1},{y1} {a2[0]},{a2[1]}" fill="none" stroke="{sc}" stroke-width="{sw}"/>')
                     else:
                         parts.append(f'<polygon points="{a1[0]},{a1[1]} {x1},{y1} {a2[0]},{a2[1]}" fill="{hf}" stroke="{sc}" stroke-width="{sw}"/>')
+        if groups:
+            parts.append("</g>")
     parts.append("</svg>")
     if fonts:
         import base64
@@ -92,6 +100,57 @@ def render_svg(d, square=False, fonts=None):
                              f"{base64.b64encode(blob).decode()}) format('woff2');}}")
         parts.insert(1, "<style>" + "".join(faces) + "</style>")
     return "\n".join(parts)
+
+
+def _kind(e, byid):
+    """What a page should treat the element as: region, box, label, text, image, arrow, line."""
+    t = e["type"]
+    if t == "text":
+        return "label" if e.get("containerId") else "text"
+    if t in ("rectangle", "ellipse", "diamond"):
+        has_label = any(b.get("type") == "text" and b["id"] in byid for b in e.get("boundElements") or [])
+        return "box" if has_label else "region"
+    if t == "arrow":
+        return "arrow"
+    if t in ("line", "freedraw"):
+        return "line"
+    return t
+
+
+def _tooltip(e, byid):
+    """The hover text for a shape: spec `tooltip`, else the label's [bracketed] second line."""
+    custom = e.get("customData") or {}
+    if custom.get("tooltip"):
+        return str(custom["tooltip"])
+    for b in e.get("boundElements") or []:
+        if b.get("type") == "text" and b["id"] in byid:
+            lines = byid[b["id"]]["text"].split("\n")
+            for line in lines[1:]:
+                line = line.strip()
+                if line.startswith("[") and line.endswith("]"):
+                    return line[1:-1].strip()
+    return ""
+
+
+def _group_open(e, byid):
+    kind = _kind(e, byid)
+    attrs = [f'id="{html.escape(e["id"], quote=True)}"', f'class="{kind}"']
+    custom = e.get("customData") or {}
+    if kind == "arrow":
+        a = (e.get("startBinding") or {}).get("elementId") or ""
+        b = (e.get("endBinding") or {}).get("elementId") or ""
+        attrs.append(f'data-from="{html.escape(a, quote=True)}" data-to="{html.escape(b, quote=True)}"')
+        if e.get("startArrowhead"):
+            attrs.append('data-bidirectional="1"')
+        if custom.get("flow") is False:
+            attrs.append('data-flow="off"')
+    elif kind == "label":
+        attrs.append(f'data-for="{html.escape(e["containerId"], quote=True)}"')
+    if e.get("link"):
+        attrs.append(f'data-link="{html.escape(str(e["link"]), quote=True)}"')
+    tip = _tooltip(e, byid) if kind in ("box", "region", "image") else ""
+    title = f"<title>{html.escape(tip)}</title>" if tip else ""
+    return f'<g {" ".join(attrs)}>{title}'
 
 
 def main():

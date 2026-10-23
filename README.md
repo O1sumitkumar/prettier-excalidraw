@@ -24,6 +24,7 @@ moving anything.
 | **Restyle** an existing file | `lint → fix → lint` on any `.excalidraw`: font, sizes, roughness, fills, corners, arrowheads and z-order are corrected without moving a single shape, then you are told what still needs a human |
 | **Lint** against the style | 24 checks with element ids, from "wrong font" to "arrow hidden behind a box" and "text sitting on a region edge"; `--json` for tooling, exit code for CI |
 | **Export** PNG or SVG | `--png` / `--svg` at build time or `export.py` on any file; the real Comic Shanns / Nunito fonts are embedded, so the image matches Excalidraw exactly |
+| **Animated HTML page** | `--html` writes one self-contained page from the same SVG: arrows flow in their direction, hovering a shape lights up its connections, a button plays a named request path one arrow at a time, linked shapes open on click |
 | **Shapes** beyond boxes | `diamond` decisions, `ellipse` start/end/actor markers, `note` captions, `divider` lines, `group`s that move together, dashed boxes and arrows, bidirectional arrows |
 | **Real logos**, sized right | Icons matched to labels by name from your own folder or fetched from [Simple Icons](https://simpleicons.org) with the brand colour; scaled to 65–95 % of the box, never stretched, darkened automatically when the contrast on a fill is too low |
 | **Your own style** | `profile.py` measures a folder of your diagrams (font, sizes, fills, arrow colours...) and writes a profile every script accepts in place of the house style |
@@ -89,6 +90,10 @@ export checkout.excalidraw as a png at 2x
 ```
 
 ```
+make an animated html page of checkout.excalidraw that plays the order flow
+```
+
+```
 use the logos in ./brand-icons for this excalidraw diagram
 ```
 
@@ -121,7 +126,7 @@ All in `skills/prettier-excalidraw/scripts/`, run from that directory.
 | `fix.py in out` | Mechanical fixes: font, sizes, roughness, fills, corners, heads, z-order. Never moves anything |
 | `preview.py file out.svg [--square]` | SVG render with exact text widths, for checking layout without Excalidraw |
 | `profile.py folder -o style.json` | Measure your own diagrams and write a style profile; pass `--style style.json` to the other scripts to use it instead of the house style |
-| `export.py file out.png\|out.svg [--scale 2]` | Shareable image with the real fonts embedded; Chrome or macOS quick-look for PNG. `build.py ... --png` does it in one step |
+| `export.py file out.png\|out.svg\|out.html [--scale 2] [--spec spec.json]` | Shareable image with the real fonts embedded; Chrome or macOS quick-look for PNG. `.html` is a self-contained animated page (flow, hover, play). `build.py ... --png` / `--html` does it in one step |
 | `icons.py search fly` / `icons.py fetch postgresql apachekafka -o icons/` | Find and download brand logos from Simple Icons with the brand colour applied |
 
 The spec format is documented in

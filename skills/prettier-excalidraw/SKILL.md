@@ -135,7 +135,10 @@ that directory (they import each other) or set `PYTHONPATH` to it.
 6. **Deliver** the `.excalidraw` file (and the spec, so the user can regenerate). If the
    user wants an image too, or the diagram is going into a README, slide or chat, add
    `--png` (or `--svg`) to `build.py`, or run `export.py diagram.excalidraw out.png` on
-   any existing file; the export embeds the real fonts and keeps the exact layout. Say
+   any existing file; the export embeds the real fonts and keeps the exact layout. For a
+   docs page or a demo, `--html` writes a self-contained page where arrows flow, hover
+   shows a shape's connections, and a button plays a request path; name the paths in
+   the spec (`"paths"`, see spec-format.md) when the user describes a flow. Say
    what each colour means in one line, since colour coding is only useful if the reader
    knows the key.
 
