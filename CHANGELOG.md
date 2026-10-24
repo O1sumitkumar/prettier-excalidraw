@@ -6,6 +6,16 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+- Mixed diagrams, layer strips with a flow drawn across them, no longer run arrows
+  through the strip titles (#10). A straight arrow that would cross a region title,
+  subtitle or corner logo gets the same offset at both ends, a bent route moves its
+  middle run past it, both on the 20 px grid, and `build.py` prints what it moved.
+  Explicit `from_offset` / `to_offset` / `bend` are used as written. Arrow labels
+  that would sit on a title or straddle a strip border move to the other side of
+  the segment or along it. Arrows are now built after every shape, so a region
+  listed after an arrow in the spec is still avoided.
+
 ### Planned
 See [ROADMAP.md](ROADMAP.md).
 

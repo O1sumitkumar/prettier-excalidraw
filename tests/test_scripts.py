@@ -333,6 +333,95 @@ class TestSmallBugs(unittest.TestCase):
             self.assertTrue(any(h["id"] == "boom" or "boom" in h["message"] for h in ohits))
 
 
+class TestStripTitles(unittest.TestCase):
+    """Mixed diagrams: a flow drawn across layer strips keeps off the strip titles (#10)."""
+
+    STRIPS = [
+        {"id": "l1", "type": "region", "x": 0, "y": 0, "w": 1200, "h": 200, "title": "[ developer experience ]"},
+        {"id": "l2", "type": "region", "x": 0, "y": 240, "w": 1200, "h": 200,
+         "title": "[ platform services - stateless, autoscaled ]"},
+        {"id": "l3", "type": "region", "x": 0, "y": 480, "w": 1200, "h": 200, "title": "[ infrastructure ]",
+         "subtitle": "managed by the platform team"},
+        {"id": "portal", "type": "box", "x": 40, "y": 80, "w": 320, "h": 80, "label": "web portal"},
+        {"id": "cicd", "type": "box", "x": 40, "y": 320, "w": 320, "h": 80, "label": "ci/cd"},
+        {"id": "k8s", "type": "box", "x": 40, "y": 560, "w": 320, "h": 80, "label": "kubernetes"},
+        {"id": "docs", "type": "box", "x": 600, "y": 80, "w": 320, "h": 80, "label": "docs"},
+        {"id": "obs", "type": "box", "x": 600, "y": 320, "w": 320, "h": 80, "label": "observability"},
+    ]
+
+    def build(self, *arrows, first=False):
+        els = list(arrows) + self.STRIPS if first else self.STRIPS + list(arrows)
+        b = build.Builder({"elements": els})
+        doc = b.build()
+        pts = {}
+        for e in doc["elements"]:
+            if e["type"] == "arrow":
+                key = (e["startBinding"]["elementId"], e["endBinding"]["elementId"])
+                pts[key] = [(e["x"] + p[0], e["y"] + p[1]) for p in e["points"]]
+        return doc, pts, b.warnings
+
+    def lint(self, doc):
+        with tempfile.TemporaryDirectory() as td:
+            p = os.path.join(td, "d.excalidraw")
+            json.dump(doc, open(p, "w", encoding="utf-8"))
+            return [f["rule"] for f in lint.lint(p)]
+
+    def test_straight_arrow_slides_past_the_title(self):
+        # "[ infrastructure ]" spans x 16..214; the arrow would run down x=200 through it
+        doc, pts, warnings = self.build({"type": "arrow", "from": "cicd", "to": "k8s", "label": "deploy"})
+        route = pts[("cicd", "k8s")]
+        self.assertEqual(len(route), 2, "stays a straight arrow")
+        self.assertEqual(route[0][0], route[1][0])
+        self.assertEqual(route[0][0], 240, "same offset at both ends, snapped to the 20 px grid past the title")
+        self.assertTrue(any("cicd -> k8s: offset +40" in w for w in warnings), warnings)
+        self.assertNotIn("arrow-through-text", self.lint(doc))
+
+    def test_bent_route_moves_its_middle_run(self):
+        # the long title on l2 spans x 16..511; the default run at x=480 would cross it
+        doc, pts, warnings = self.build({"type": "arrow", "from": "docs", "to": "cicd", "from_side": "left", "to_side": "right"})
+        route = pts[("docs", "cicd")]
+        self.assertEqual(len(route), 4)
+        self.assertEqual(route[1][0], 540, "vertical run moved past the title, on the grid")
+        self.assertTrue(any("docs -> cicd: bend 540" in w for w in warnings), warnings)
+        self.assertNotIn("arrow-through-text", self.lint(doc))
+
+    def test_explicit_offset_and_bend_are_kept(self):
+        _, pts, warnings = self.build(
+            {"type": "arrow", "from": "cicd", "to": "k8s", "from_offset": 0, "to_offset": 0},
+            {"type": "arrow", "from": "docs", "to": "cicd", "from_side": "left", "to_side": "right", "bend": 480})
+        self.assertEqual(pts[("cicd", "k8s")][0][0], 200, "author's offsets win, even through a title")
+        self.assertEqual(pts[("docs", "cicd")][1][0], 480, "author's bend wins")
+        self.assertEqual(warnings, [])
+
+    def test_title_wider_than_the_column_is_left_alone(self):
+        # no offset within the 320 px box clears a 495 px title: route unchanged, lint still reports it
+        doc, pts, warnings = self.build({"type": "arrow", "from": "portal", "to": "cicd"})
+        self.assertEqual(pts[("portal", "cicd")], [(200, 165), (200, 315)])
+        self.assertEqual(warnings, [])
+        self.assertIn("arrow-through-text", self.lint(doc))
+
+    def test_regions_listed_after_arrows_are_still_avoided(self):
+        _, pts, _ = self.build({"type": "arrow", "from": "cicd", "to": "k8s"}, first=True)
+        self.assertEqual(pts[("cicd", "k8s")][0][0], 240)
+
+    def test_labels_keep_off_strip_borders_and_titles(self):
+        # 40 px between strips and boxes 80 px from the edges: a mid-segment label would straddle a border
+        doc, pts, _ = self.build(
+            {"type": "arrow", "from": "cicd", "to": "k8s", "label": "deploy [gitops]"},
+            {"type": "arrow", "from": "docs", "to": "cicd", "from_side": "left", "to_side": "right", "label": "docs build"},
+            {"type": "arrow", "from": "portal", "to": "obs", "from_side": "right", "to_side": "left", "label": "dashboards",
+             "from_offset": 20})
+        rules = self.lint(doc)
+        self.assertNotIn("text-on-region-edge", rules)
+        self.assertNotIn("text-overlap", rules)
+        labels = {e["text"]: e for e in doc["elements"] if e["type"] == "text" and not e.get("containerId")}
+        run = pts[("docs", "cicd")]
+        self.assertGreater(labels["docs build"]["x"], run[1][0], "label sits right of the vertical run")
+        self.assertGreater(labels["docs build"]["y"], 240 + 4, "and inside the strip, not on its border")
+        d = labels["dashboards"]
+        self.assertTrue(d["y"] >= 240 or d["y"] + d["height"] <= 240, "label is on one side of the border")
+
+
 class TestIconFolder(unittest.TestCase):
     def _spec(self, icon, extra=None):
         el = {"id": "b", "type": "box", "label": "postgres\n[db]", "icon": icon, "x": 0, "y": 0}

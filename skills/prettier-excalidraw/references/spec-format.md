@@ -158,8 +158,17 @@ supports.
   top/bottom routes, the x of the vertical run for left/right routes. Use it when two
   arrows between the same rows would otherwise share a line (`lint.py` reports
   `arrow-overlap`).
+- Region titles, subtitles and corner logos are kept clear by default, which is what
+  makes a flow drawn across layer strips work: a straight arrow that would run
+  through a title gets the same offset at both ends (so it stays straight), a bent
+  route moves its middle run past the title, both snapped to the 20 px grid. The
+  builder prints what it moved. An explicit `from_offset` / `to_offset` or `bend` is
+  always used as written, and a title wider than the arrow's column is left for you
+  to resolve (`lint.py` reports `arrow-through-text`).
 - `label` sits above the longest horizontal segment or right of the longest vertical
-  one; `label_at: "start" | "end"` moves it to the first / last segment.
+  one; `label_at: "start" | "end"` moves it to the first / last segment. A label that
+  would land on a region title or straddle a region border moves to the other side
+  of the segment, then further along it, so it stays inside one strip.
 - `color`: `black` (default) | `red` | `green` | `blue` | hex. The label takes the
   arrow's colour.
 - `flow: false` stops this arrow's flow animation in the HTML export (a webhook or

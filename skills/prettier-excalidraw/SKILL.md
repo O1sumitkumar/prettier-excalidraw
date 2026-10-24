@@ -81,8 +81,10 @@ that directory (they import each other) or set `PYTHONPATH` to it.
    - `from_offset` / `to_offset` are px along the side from its centre, positive to
      the right or down; keep them equal for a straight arrow
    - a label goes above the longest horizontal segment or to the right of the longest
-     vertical one; `label_at: start | end` picks the first or last segment instead;
-     make sure that segment is not on a region border (`text-on-region-edge`)
+     vertical one; `label_at: start | end` picks the first or last segment instead
+   - arrows and labels keep off region titles and borders by themselves (the builder
+     offsets or bends and says so); if a title is wider than the arrow's column, set
+     `from_offset` / `to_offset` or `bend` yourself (`arrow-through-text`)
    Give every box and region an `id`; arrows reference those ids. Pick `from_side` /
    `to_side` so an arrow leaves a box on the side that faces its target and does not
    cross other boxes; use `from_offset` / `to_offset` to fan out several arrows from one
