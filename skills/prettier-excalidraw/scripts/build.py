@@ -17,7 +17,7 @@ Standard library only.
 """
 import base64, hashlib, json, math, os, random, struct, sys, time
 from exstyle import (ARROW_COLORS, ARROWHEADS, CHAR_W, FILLS, FONT_IDS, ICON_MIN_CONTRAST, LINE_H, STYLE, TINTS,
-                     area, contrast, darken_to_contrast, load_style, style_from_argv)
+                     area, bbox, contrast, darken_to_contrast, load_style, overlap, style_from_argv)
 from exstyle import size as default_size
 
 _ALPHABET = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
@@ -81,17 +81,21 @@ class Builder:
         self.layers = {"region": [], "box": [], "image": [], "divider": [], "text": [], "arrow": []}
         self.by_id = {}          # spec id -> excalidraw element (the box/region/image/divider)
         self.attached_icons = {}  # element id -> icon images, for groups
+        self.obstacles = []      # region titles, subtitles and corner logos; arrows and labels keep off them
         self.warnings = []
         self.darkened = []       # icons recoloured for contrast, summarised once at the end
         self.icon_dirs = icon_dirs(spec, base_dir)
 
     # ---------- public ----------
     def build(self):
-        # groups reference ids of elements defined anywhere in the spec, so they are
-        # applied after everything else exists.
+        # Arrows go after every shape so routing sees all region titles, whatever order
+        # the spec lists them in; groups reference ids defined anywhere, so they go last.
         for item in self.spec["elements"]:
-            if item["type"] != "group":
+            if item["type"] not in ("group", "arrow"):
                 getattr(self, "add_" + item["type"])(item)
+        for item in self.spec["elements"]:
+            if item["type"] == "arrow":
+                self.add_arrow(item)
         for item in self.spec["elements"]:
             if item["type"] == "group":
                 self.add_group(item)
@@ -120,7 +124,7 @@ class Builder:
             else:
                 tx = it["x"] + pad
             ty = it["y"] + it["h"] + 8 if pos == "bottom-center" else it["y"] + pad
-            self._free_text(it["title"], tx, ty, size, "center" if "center" in pos else "left")
+            self.obstacles.append(bbox(self._free_text(it["title"], tx, ty, size, "center" if "center" in pos else "left")))
         if it.get("icon"):
             # provider logo in the corner opposite the title ("hosted on X" boundaries)
             ih = it.get("icon_h", 32)
@@ -130,6 +134,7 @@ class Builder:
             icon = self._image(self._resolve_icon(dict(it, label=it.get("title", ""))), ix, it["y"] + pad - 4, None, ih,
                                on_fill=fill if fill != "transparent" else "#ffffff", icon_color=it.get("icon_color"))
             self.attached_icons.setdefault(e["id"], []).append(icon)
+            self.obstacles.append(bbox(icon))
         if it.get("subtitle"):
             # secondary note in the opposite top corner from the title, size 16
             size = it.get("subtitle_size", default_size("small"))
@@ -137,7 +142,7 @@ class Builder:
             pad = 16
             right = it.get("title_pos", "top-left") != "top-right"
             tx = it["x"] + it["w"] - tw - pad if right else it["x"] + pad
-            self._free_text(it["subtitle"], tx, it["y"] + pad + 2, size, "left")
+            self.obstacles.append(bbox(self._free_text(it["subtitle"], tx, it["y"] + pad + 2, size, "left")))
 
     def _resolve_icon(self, it):
         """Turn `icon` into a file path. A value with an extension or a slash is a path;
@@ -326,6 +331,7 @@ class Builder:
         p0 = self._anchor(src, s_side, gap, it.get("from_offset", 0))
         p1 = self._anchor(dst, d_side, gap, it.get("to_offset", 0))
         pts = self._route(p0, p1, s_side, d_side, it.get("bend"))
+        pts = self._avoid_titles(it, src, dst, s_side, d_side, gap, pts)
         xs = [p[0] for p in pts]; ys = [p[1] for p in pts]
         rel = [[p[0] - pts[0][0], p[1] - pts[0][1]] for p in pts]
         e = _base("arrow", pts[0][0], pts[0][1], max(xs) - min(xs), max(ys) - min(ys),
@@ -345,11 +351,8 @@ class Builder:
         if it.get("label"):
             size = it.get("size", default_size("small"))
             tw, th = text_size(it["label"], self.font, size)
-            (mx, my), vertical = self._label_anchor(pts, it.get("label_at", "mid"))
-            if vertical:
-                self._free_text(it["label"], mx + 8, my - th / 2, size, "left", color=color)
-            else:
-                self._free_text(it["label"], mx - tw / 2, my - th - 8, size, "center", color=color)
+            x, y, align = self._label_pos(pts, it.get("label_at", "mid"), tw, th)
+            self._free_text(it["label"], x, y, size, align, color=color)
 
     # ---------- helpers ----------
     def _register(self, it, e, layer):
@@ -457,21 +460,103 @@ class Builder:
             return [(x0, y0), (x1, y0), (x1, y1)]
         return [(x0, y0), (x0, y1), (x1, y1)]
 
+    # ---------- keeping arrows and labels off strip titles ----------
+    def _blocked(self, pts, margin=10):
+        """The first region title / subtitle / logo that a segment of the route runs
+        through (within `margin` px), else None."""
+        for a, b in zip(pts, pts[1:]):
+            seg = (min(a[0], b[0]) - margin, min(a[1], b[1]) - margin, max(a[0], b[0]) + margin, max(a[1], b[1]) + margin)
+            for ob in self.obstacles:
+                if overlap(seg, ob):
+                    return ob
+        return None
+
+    def _avoid_titles(self, it, src, dst, s_side, d_side, gap, pts):
+        """A default route that runs through a region title is moved off it, the way the
+        titles in a layered diagram get avoided by hand: a straight arrow slides along
+        both boxes (the same offset at each end, so it stays straight), a bent route
+        moves its middle run. Explicit from/to_offset or bend are respected as written.
+        Nothing changes when the route is clear or no clear spot exists on the grid."""
+        hit = self._blocked(pts)
+        if not hit:
+            return pts
+        margin = 10
+        vertical = s_side in ("top", "bottom")     # the run to move is vertical for top/bottom routes
+        if len(pts) == 2 and "from_offset" not in it and "to_offset" not in it:
+            cur = pts[0][0] if vertical else pts[0][1]
+            lo, hi = (hit[0], hit[2]) if vertical else (hit[1], hit[3])
+            size_key = "width" if vertical else "height"
+            room = min(src[size_key], dst[size_key]) / 2 - 20     # keep the anchor well inside both sides
+            for c in sorted((_grid(hi + margin, up=True), _grid(lo - margin, up=False)), key=lambda c: abs(c - cur)):
+                off = c - cur
+                if abs(off) > room:
+                    continue
+                new = self._route(self._anchor(src, s_side, gap, off), self._anchor(dst, d_side, gap, off),
+                                  s_side, d_side, None)
+                if len(new) == 2 and not self._blocked(new):
+                    self.warnings.append(f"arrow {it['from']} -> {it['to']}: offset {off:+.0f} to clear a region title")
+                    return new
+        elif len(pts) == 4 and "bend" not in it:
+            cur = pts[1][1] if vertical else pts[1][0]
+            lo, hi = (hit[1], hit[3]) if vertical else (hit[0], hit[2])
+            a, b = (pts[0][1], pts[3][1]) if vertical else (pts[0][0], pts[3][0])
+            for c in sorted((_grid(hi + margin, up=True), _grid(lo - margin, up=False)), key=lambda c: abs(c - cur)):
+                if not min(a, b) + margin <= c <= max(a, b) - margin:     # the run must stay between the ends
+                    continue
+                new = self._route(pts[0], pts[3], s_side, d_side, c)
+                if not self._blocked(new):
+                    self.warnings.append(f"arrow {it['from']} -> {it['to']}: bend {c:.0f} to clear a region title")
+                    return new
+        return pts
+
+    def _label_pos(self, pts, where, tw, th):
+        """Top-left and alignment for an arrow label. First choice is above the longest
+        horizontal run or right of the longest vertical one, like a hand-placed label.
+        When that spot lands on a region title or straddles a region border (the usual
+        case for a flow drawn across layer strips) the other side of the run is tried,
+        then spots further along it; the first choice stands if nothing is clear."""
+        a, b = self._label_segment(pts, where)
+        vertical = abs(b[0] - a[0]) < abs(b[1] - a[1])
+        regions = [bbox(r) for r in self.layers["region"]]
+
+        def clear(x, y):
+            tb = (x, y, x + tw, y + th)
+            if any(overlap(tb, (o[0] - 4, o[1] - 4, o[2] + 4, o[3] + 4)) for o in self.obstacles):
+                return False
+            for rb in regions:   # exactly lint's text-on-region-edge test
+                if ((tb[1] < rb[1] < tb[3] or tb[1] < rb[3] < tb[3]) and tb[0] < rb[2] and tb[2] > rb[0]) or \
+                   ((tb[0] < rb[0] < tb[2] or tb[0] < rb[2] < tb[2]) and tb[1] < rb[3] and tb[3] > rb[1]):
+                    return False
+            return True
+
+        first = None
+        for f in (0.5, 0.35, 0.65, 0.2, 0.8):
+            mx, my = a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f
+            if vertical:
+                sides = ((mx + 8, my - th / 2, "left"), (mx - 8 - tw, my - th / 2, "right"))
+            else:
+                sides = ((mx - tw / 2, my - th - 8, "center"), (mx - tw / 2, my + 8, "center"))
+            for cand in sides:
+                first = first or cand
+                if clear(cand[0], cand[1]):
+                    return cand
+        return first
+
     @staticmethod
-    def _label_anchor(pts, where="mid"):
-        # midpoint of the longest segment ("mid"), or of the first / last segment
+    def _label_segment(pts, where="mid"):
+        # the longest segment ("mid"), or the first / last one
         segs = list(zip(pts, pts[1:]))
         if where == "start":
             segs = segs[:1]
         elif where == "end":
             segs = segs[-1:]
-        best, bl, vertical = None, -1, False
-        for a, b in segs:
-            l = math.hypot(b[0] - a[0], b[1] - a[1])
-            if l > bl:
-                bl, best = l, ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2)
-                vertical = abs(b[0] - a[0]) < abs(b[1] - a[1])
-        return best, vertical
+        return max(segs, key=lambda s: math.hypot(s[1][0] - s[0][0], s[1][1] - s[0][1]))
+
+    @staticmethod
+    def _label_anchor(pts, where="mid"):
+        # midpoint of the chosen segment and whether it runs vertically
+        a, b = Builder._label_segment(pts, where)
+        return ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2), abs(b[0] - a[0]) < abs(b[1] - a[1])
 
     def to_json(self):
         # z-order: regions & shapes (box / diamond / ellipse) by area (big first, so
@@ -499,6 +584,11 @@ class Builder:
 
 
 ICON_EXTS = (".svg", ".png", ".jpg", ".jpeg", ".webp", ".gif")
+
+
+def _grid(v, up):
+    """Snap to the 20 px grid, rounding away from the thing being avoided."""
+    return (math.ceil if up else math.floor)(v / 20) * 20
 
 
 def slug(text):

@@ -83,9 +83,10 @@ Crowding rule in `lint.py` (too many boxes per region, labels under a minimum
 size), automatic splitting into a top-level diagram plus one per region, and a
 "zoom" convention linking them.
 
-### 3.3 Mixed diagrams: layers plus request flow in one picture  (S–M)
-Layer strips as a background with a left→right flow drawn across them; needs
-`bend` and offset defaults that avoid strip titles.
+### 3.3 Mixed diagrams: layers plus request flow in one picture  (S–M) — done
+Layer strips as a background with a left→right flow drawn across them. `build.py`
+offsets straight arrows and bends routed ones past strip titles, and keeps labels
+off titles and strip borders (#10). Still by hand: a title wider than the column.
 
 ## 4. Icons
 
