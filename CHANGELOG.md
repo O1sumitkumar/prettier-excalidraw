@@ -6,6 +6,11 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Planned
+See [ROADMAP.md](ROADMAP.md).
+
+## [0.7.0] - 2026-10-24
+
 ### Added
 - `lint.py` takes directories and several paths (#65): every `.excalidraw` under a
   folder is checked recursively, with one summary line per file, the findings of
@@ -15,9 +20,6 @@ All notable changes to this project are documented here. The format follows
   can lint its diagrams folder on every pull request with one `uses:` line
   (inputs `paths`, `allow-manual`, `style`, `ref`). This repository's CI runs it
   against the shipped examples.
-
-### Planned
-See [ROADMAP.md](ROADMAP.md).
 
 ## [0.6.0] - 2026-10-24
 
