@@ -1,0 +1,63 @@
+name: lint diagrams
+
+# Reusable: guard a folder of .excalidraw files in any repository.
+#
+#   jobs:
+#     diagrams:
+#       uses: Raihan-009/prettier-excalidraw/.github/workflows/lint-diagrams.yml@main
+#       with:
+#         paths: docs/diagrams
+#
+# Every pull request that touches a diagram then fails when one drifts from the
+# style: wrong font, sketchy lines, an arrow hidden behind a box, text on a region
+# edge. The findings name the element ids.
+
+on:
+  workflow_call:
+    inputs:
+      paths:
+        description: Files or folders to lint, space separated (folders are searched recursively)
+        required: true
+        type: string
+      allow-manual:
+        description: Let findings that need a human (overlaps, icon sizes) warn instead of fail
+        required: false
+        type: boolean
+        default: false
+      style:
+        description: Optional style.json from profile.py, relative to the caller's repository
+        required: false
+        type: string
+        default: ""
+      ref:
+        description: prettier-excalidraw ref to lint with (a tag such as v0.6.0, or main)
+        required: false
+        type: string
+        default: main
+      python-version:
+        required: false
+        type: string
+        default: "3.12"
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository under test
+        uses: actions/checkout@v4
+      - name: Check out prettier-excalidraw
+        uses: actions/checkout@v4
+        with:
+          repository: Raihan-009/prettier-excalidraw
+          ref: ${{ inputs.ref }}
+          path: .prettier-excalidraw
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+      - name: Lint
+        shell: bash
+        run: |
+          flags=""
+          if [ "${{ inputs.allow-manual }}" = "true" ]; then flags="$flags --allow-manual"; fi
+          if [ -n "${{ inputs.style }}" ]; then flags="$flags --style ${{ inputs.style }}"; fi
+          python .prettier-excalidraw/skills/prettier-excalidraw/scripts/lint.py ${{ inputs.paths }} $flags

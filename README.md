@@ -23,6 +23,7 @@ moving anything.
 | **Replicate** a diagram from a picture | Paste a screenshot or vendor diagram; it is read with a fixed checklist, rebuilt in your style, and delivered with a note listing what was renamed, merged or dropped |
 | **Restyle** an existing file | `lint → fix → lint` on any `.excalidraw`: font, sizes, roughness, fills, corners, arrowheads and z-order are corrected without moving a single shape, then you are told what still needs a human |
 | **Lint** against the style | 24 checks with element ids, from "wrong font" to "arrow hidden behind a box" and "text sitting on a region edge"; `--json` for tooling, exit code for CI |
+| **Guard a whole folder** | `lint.py docs/diagrams/` checks every diagram under a folder with a per-file summary, and a reusable GitHub Action does it on every pull request, so a team's diagrams stay consistent, not just one person's |
 | **Export** PNG or SVG | `--png` / `--svg` at build time or `export.py` on any file; the real Comic Shanns / Nunito fonts are embedded, so the image matches Excalidraw exactly |
 | **Animated HTML page** | `--html` writes one self-contained page from the same SVG: arrows flow in their direction, hovering a shape lights up its connections, a button plays a named request path one arrow at a time, linked shapes open on click |
 | **Shapes** beyond boxes | `diamond` decisions, `ellipse` start/end/actor markers, `note` captions, `divider` lines, `group`s that move together, dashed boxes and arrows, bidirectional arrows |
@@ -107,6 +108,32 @@ measure my diagrams in ~/diagrams and use that style instead of the house style
 
 Each of these maps to one or two of the scripts below, which you can also run by hand.
 
+### Keep a team's diagrams consistent
+
+Point the linter at a folder and it checks every `.excalidraw` under it:
+
+```
+$ python3 lint.py docs/diagrams/
+docs/diagrams/checkout.excalidraw: clean
+docs/diagrams/legacy/billing.excalidraw: 3 findings (1 manual)
+docs/diagrams/platform.excalidraw: clean
+...
+3 files, 2 clean, 1 with findings
+```
+
+To run that on every pull request in your own repository, add one job:
+
+```yaml
+jobs:
+  diagrams:
+    uses: Raihan-009/prettier-excalidraw/.github/workflows/lint-diagrams.yml@main
+    with:
+      paths: docs/diagrams
+```
+
+Optional inputs: `allow-manual: true` (hand-drawn files with known manual findings
+only warn), `style: style.json` (your own profile), `ref: v0.6.0` (pin the linter).
+
 ## The style, in one screen
 
 | | |
@@ -126,7 +153,7 @@ All in `skills/prettier-excalidraw/scripts/`, run from that directory.
 | Script | Purpose |
 |---|---|
 | `build.py spec.json out.excalidraw` | JSON spec → diagram. Handles bound labels, elbow routing, bindings, icon embedding, z-order |
-| `lint.py file.excalidraw` | 24 style checks with element ids. `--font nunito`, `--arrowhead filled`, `--json`, `--allow-manual` for CI gates on hand-drawn files |
+| `lint.py file.excalidraw \| folder/ ...` | 24 style checks with element ids; a folder is searched recursively and summarised per file. `--font nunito`, `--arrowhead filled`, `--json`, `--quiet`, `--allow-manual` for CI gates on hand-drawn files |
 | `fix.py in out` | Mechanical fixes: font, sizes, roughness, fills, corners, heads, z-order. Never moves anything |
 | `preview.py file out.svg [--square]` | SVG render with exact text widths, for checking layout without Excalidraw |
 | `profile.py folder -o style.json` | Measure your own diagrams and write a style profile; pass `--style style.json` to the other scripts to use it instead of the house style |
