@@ -103,14 +103,15 @@ def to_png(svg, out, scale=2):
 
 
 HTML_CSS = """
-body{margin:0;background:#f8f9fa;color:#1e1e1e;font-family:'Nunito',system-ui,sans-serif}
+body{margin:0;min-height:100vh;display:flex;flex-direction:column;background:#f8f9fa;color:#1e1e1e;font-family:'Nunito',system-ui,sans-serif}
 .bar{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;padding:10px 16px;background:#fff;border-bottom:1px solid #dee2e6}
 .bar button{font:inherit;font-size:14px;padding:5px 12px;border:1px solid #868e96;border-radius:4px;background:#fff;color:#1e1e1e;cursor:pointer}
 .bar button.on{background:#1e1e1e;color:#fff;border-color:#1e1e1e}
 .bar .hint{color:#868e96;font-size:13px}
 .bar .title{font-weight:700;margin-right:8px}
-main{padding:16px}
-svg{display:block;max-width:100%;height:auto;margin:0 auto;background:#fff}
+/* the drawing sits in the middle of the screen, as large as the window allows */
+main{flex:1;display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box}
+svg{display:block;width:auto;height:auto;max-width:100%;max-height:calc(100vh - 110px);background:#fff;border-radius:10px;box-shadow:0 4px 24px rgba(0,0,0,.08)}
 /* flow: dashes travel along the line in the arrow's direction; heads stay solid */
 @keyframes flow{to{stroke-dashoffset:-36}}
 svg.flowing .arrow:not([data-flow=off]) .line{stroke-dasharray:14 10;animation:flow 1s linear infinite}
@@ -188,7 +189,7 @@ function go(a){const w=walk;w.choices=null;arrows.forEach(x=>x.classList.remove(
   a.classList.add('step');w.visited.add(a.id);w.last=a;w.cur=other(a,w.cur);status.textContent='';timer=setTimeout(stepWalk,700)}
 function pick(i){if(walk&&walk.choices&&walk.choices[i])go(walk.choices[i])}
 const NS='http://www.w3.org/2000/svg';
-function mid(a){const pts=a.querySelector('.line').getAttribute('points').trim().split(/\s+/).map(p=>p.split(',').map(Number));
+function mid(a){const pts=a.querySelector('.line').getAttribute('points').trim().split(/\\s+/).map(p=>p.split(',').map(Number));
   let best=pts[0],bl=-1;for(let i=0;i+1<pts.length;i++){const [x0,y0]=pts[i],[x1,y1]=pts[i+1],l=Math.hypot(x1-x0,y1-y0);if(l>bl){bl=l;best=[(x0+x1)/2,(y0+y1)/2]}}return best}
 function badge(a,n){let g=svg.querySelector('g.badges');if(!g){g=document.createElementNS(NS,'g');g.setAttribute('class','badges');svg.appendChild(g)}
   const [x,y]=mid(a),c=document.createElementNS(NS,'g');
