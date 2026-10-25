@@ -882,7 +882,7 @@ class TestExploreMode(unittest.TestCase):
 
     def test_page_ships_explore_mode(self):
         for needle in (".arrow.choice", "function explore(", "function outgoing(", "data-bidirectional", "q.get('explore')",
-                       "e.key==='Escape'", ".badges"):
+                       "e.key==='Escape'", ".badges", "KEYS='ABCDEFGHIJKLMNOPQRSTUVWXYZ'"):
             self.assertIn(needle, self.html, needle)
 
     def _dom(self, query):
@@ -902,7 +902,9 @@ class TestExploreMode(unittest.TestCase):
         self.assertEqual(dom.count('class="arrow done"'), 2, "two single-exit steps completed")
         self.assertEqual(dom.count('class="arrow choice"'), 3, "three candidates at the payment service")
         self.assertEqual(dom.count("<circle cx="), 3, "one badge per candidate")
-        self.assertIn("fork at payment service: click an arrow, a badge or a box, or press 1-3", dom)
+        self.assertIn("3 ways out of payment service: pick A, B, C (click or type the letter)", dom)
+        self.assertEqual(re.findall(r'<text x="[\d.]+" y="[\d.]+">([A-Z])</text>', dom.split('class="badges"', 1)[1]), ["A", "B", "C"],
+                         "badges are lettered, not numbered: they are choices, not steps")
         self.assertIn("playing", dom.split("<svg", 1)[1][:400], "the rest of the diagram is faded while walking")
 
     def test_walk_from_a_dead_end_finishes_cleanly(self):

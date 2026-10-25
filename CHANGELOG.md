@@ -10,8 +10,9 @@ All notable changes to this project are documented here. The format follows
 - Explore mode in the animated HTML export (#77). An **explore** button on the page:
   click any box and playback walks forward along the drawing's own arrows. A box
   with one way out is walked through; at a fork the candidate arrows glow with
-  numbered badges and the walk waits for a click on an arrow, a badge or the target
-  box, or a number key. Visited arrows are not offered again, so loops end;
+  lettered badges (A, B, C are the ways out, not an order) and the walk waits for a
+  click on an arrow, a badge or the target box, or the letter key. Visited arrows
+  are not offered again, so loops end;
   double-headed arrows count both ways; Escape stops. `?explore=<id>` opens the
   page already walking from that shape. Named `paths` are unchanged.
 

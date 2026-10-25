@@ -183,27 +183,27 @@ function stepWalk(){const w=walk;if(!w)return;if(w.last)w.last.classList.replace
   const opts=outgoing(w.cur,w.visited);
   if(!opts.length){status.textContent='';return finish()}
   if(opts.length===1)return go(opts[0]);
-  w.choices=opts;opts.forEach((a,i)=>{a.classList.add('choice');badge(a,i+1)});
-  status.textContent='fork at '+name(w.cur)+': click an arrow, a badge or a box, or press 1-'+opts.length}
+  w.choices=opts;opts.forEach((a,i)=>{a.classList.add('choice');badge(a,i)});
+  status.textContent=opts.length+' ways out of '+name(w.cur)+': pick '+opts.map((a,i)=>KEYS[i]).join(', ')+' (click or type the letter)'}
 function go(a){const w=walk;w.choices=null;arrows.forEach(x=>x.classList.remove('choice'));const b=svg.querySelector('g.badges');if(b)b.remove();
   a.classList.add('step');w.visited.add(a.id);w.last=a;w.cur=other(a,w.cur);status.textContent='';timer=setTimeout(stepWalk,700)}
 function pick(i){if(walk&&walk.choices&&walk.choices[i])go(walk.choices[i])}
-const NS='http://www.w3.org/2000/svg';
+const NS='http://www.w3.org/2000/svg',KEYS='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 function mid(a){const pts=a.querySelector('.line').getAttribute('points').trim().split(/\\s+/).map(p=>p.split(',').map(Number));
   let best=pts[0],bl=-1;for(let i=0;i+1<pts.length;i++){const [x0,y0]=pts[i],[x1,y1]=pts[i+1],l=Math.hypot(x1-x0,y1-y0);if(l>bl){bl=l;best=[(x0+x1)/2,(y0+y1)/2]}}return best}
-function badge(a,n){let g=svg.querySelector('g.badges');if(!g){g=document.createElementNS(NS,'g');g.setAttribute('class','badges');svg.appendChild(g)}
+function badge(a,i){let g=svg.querySelector('g.badges');if(!g){g=document.createElementNS(NS,'g');g.setAttribute('class','badges');svg.appendChild(g)}
   const [x,y]=mid(a),c=document.createElementNS(NS,'g');
   const circle=document.createElementNS(NS,'circle');circle.setAttribute('cx',x);circle.setAttribute('cy',y);circle.setAttribute('r',13);
-  const t=document.createElementNS(NS,'text');t.setAttribute('x',x);t.setAttribute('y',y+5);t.textContent=n;
-  c.append(circle,t);c.onclick=()=>pick(n-1);g.appendChild(c)}
+  const t=document.createElementNS(NS,'text');t.setAttribute('x',x);t.setAttribute('y',y+5);t.textContent=KEYS[i]||'?';
+  c.append(circle,t);c.onclick=()=>pick(i);g.appendChild(c)}
 arrows.forEach(a=>a.addEventListener('click',()=>{if(walk&&walk.choices){const i=walk.choices.indexOf(a);if(i>=0)pick(i)}}));
-document.addEventListener('keydown',e=>{if(e.key==='Escape')return reset();const n=parseInt(e.key,10);if(n>=1&&n<=9)pick(n-1)});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')return reset();if(e.key.length===1){const i=KEYS.indexOf(e.key.toUpperCase());if(i>=0)pick(i)}});
 const names=Object.keys(paths),hint=bar.querySelector('.hint');
 if(names.length){names.forEach(n=>{const b=document.createElement('button');b.textContent='play: '+n;b.onclick=()=>play(namedPath(paths[n]));bar.insertBefore(b,status)})}
 else if(arrows.length){const b=document.createElement('button');b.textContent='play request path';b.onclick=()=>play(autoPath());bar.insertBefore(b,status)}
 if(arrows.length){const b=document.createElement('button');b.id='explore';b.textContent='explore';
   b.onclick=()=>{const on=svg.classList.toggle('explore');b.classList.toggle('on',on);if(!on)reset();
-    hint.textContent=on?'click a box to play from it; at a fork, pick a branch':hint.dataset.base};
+    hint.textContent=on?'click a box to play from it; where it forks, the lettered badges are the ways out':hint.dataset.base};
   hint.dataset.base=hint.textContent;flowBtn.after(b)}
 const q=new URLSearchParams(location.search);
 if(q.get('explore')){svg.classList.add('explore');const b=document.getElementById('explore');if(b)b.classList.add('on');explore(q.get('explore'))}
