@@ -6,6 +6,11 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Planned
+See [ROADMAP.md](ROADMAP.md).
+
+## [0.8.0] - 2026-10-25
+
 ### Added
 - Explore mode in the animated HTML export (#77). An **explore** button on the page:
   click any box and playback walks forward along the drawing's own arrows. A box
@@ -15,6 +20,8 @@ All notable changes to this project are documented here. The format follows
   are not offered again, so loops end;
   double-headed arrows count both ways; Escape stops. `?explore=<id>` opens the
   page already walking from that shape. Named `paths` are unchanged.
+- The animated page centres the drawing on screen, fitted to the window, on a white
+  card, instead of pinning it to the top-left corner.
 
 ### Fixed
 - Mixed diagrams, layer strips with a flow drawn across them, no longer run arrows
@@ -25,9 +32,6 @@ All notable changes to this project are documented here. The format follows
   that would sit on a title or straddle a strip border move to the other side of
   the segment or along it. Arrows are now built after every shape, so a region
   listed after an arrow in the spec is still avoided.
-
-### Planned
-See [ROADMAP.md](ROADMAP.md).
 
 ## [0.7.0] - 2026-10-24
 
