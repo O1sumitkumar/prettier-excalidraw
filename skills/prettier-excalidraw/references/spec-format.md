@@ -211,6 +211,15 @@ Three optional spec keys shape the page:
   first box nothing points to and follows the arrows. For an existing file, pass the
   spec with `export.py ... out.html --spec spec.json`.
 
+Named paths are the curated stories. The page also has an **explore** button that
+needs nothing in the spec: with it on, clicking any box plays forward from there along
+the drawing's own arrows. A box with one way out is walked straight through; at a fork
+the candidate arrows glow with numbered badges and the walk waits until the reader
+clicks an arrow, a badge or the box it leads to, or presses its number. Visited arrows
+are not offered again, so loops (`pay -> stripe -> pay`) end; double-headed arrows
+count both ways; `flow: false` arrows are still walkable; Escape stops a walk.
+`page.html?explore=<id>` opens the page already walking from that shape.
+
 ## Rendering a quick preview
 `preview.py` writes a lighter SVG without fonts, for layout checks. To look at it:
 - Chrome, any OS, exact size and crisp at 2x. Read `width`/`height` from the SVG's

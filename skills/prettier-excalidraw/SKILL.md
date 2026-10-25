@@ -139,8 +139,9 @@ that directory (they import each other) or set `PYTHONPATH` to it.
    `--png` (or `--svg`) to `build.py`, or run `export.py diagram.excalidraw out.png` on
    any existing file; the export embeds the real fonts and keeps the exact layout. For a
    docs page or a demo, `--html` writes a self-contained page where arrows flow, hover
-   shows a shape's connections, and a button plays a request path; name the paths in
-   the spec (`"paths"`, see spec-format.md) when the user describes a flow. Say
+   shows a shape's connections, a button plays a request path, and an explore button
+   plays from any box and pauses at forks; name the paths in the spec (`"paths"`, see
+   spec-format.md) when the user describes a flow. Say
    what each colour means in one line, since colour coding is only useful if the reader
    knows the key.
 
