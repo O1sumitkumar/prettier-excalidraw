@@ -103,14 +103,15 @@ def to_png(svg, out, scale=2):
 
 
 HTML_CSS = """
-body{margin:0;background:#f8f9fa;color:#1e1e1e;font-family:'Nunito',system-ui,sans-serif}
+body{margin:0;min-height:100vh;display:flex;flex-direction:column;background:#f8f9fa;color:#1e1e1e;font-family:'Nunito',system-ui,sans-serif}
 .bar{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;padding:10px 16px;background:#fff;border-bottom:1px solid #dee2e6}
 .bar button{font:inherit;font-size:14px;padding:5px 12px;border:1px solid #868e96;border-radius:4px;background:#fff;color:#1e1e1e;cursor:pointer}
 .bar button.on{background:#1e1e1e;color:#fff;border-color:#1e1e1e}
 .bar .hint{color:#868e96;font-size:13px}
 .bar .title{font-weight:700;margin-right:8px}
-main{padding:16px}
-svg{display:block;max-width:100%;height:auto;margin:0 auto;background:#fff}
+/* the drawing sits in the middle of the screen, as large as the window allows */
+main{flex:1;display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box}
+svg{display:block;width:auto;height:auto;max-width:100%;max-height:calc(100vh - 110px);background:#fff;border-radius:10px;box-shadow:0 4px 24px rgba(0,0,0,.08)}
 /* flow: dashes travel along the line in the arrow's direction; heads stay solid */
 @keyframes flow{to{stroke-dashoffset:-36}}
 svg.flowing .arrow:not([data-flow=off]) .line{stroke-dasharray:14 10;animation:flow 1s linear infinite}
@@ -126,7 +127,14 @@ svg.focus .box:not(.lit),svg.focus .image:not(.lit),svg.focus .label:not(.lit){o
 /* play: one arrow at a time */
 .arrow.step .line{stroke:#e03131;stroke-width:4;stroke-dasharray:14 10;animation:flow .6s linear infinite}
 .arrow.step polygon{stroke:#e03131}
-svg.playing .arrow:not(.step):not(.done){opacity:.2}
+svg.playing .arrow:not(.step):not(.done):not(.choice){opacity:.2}
+/* explore: play from any box; at a fork the candidate arrows glow and wait for a pick */
+svg.explore .box,svg.explore .image,.arrow.choice{cursor:pointer}
+.arrow.choice .line{stroke:#e03131;stroke-width:3.5;stroke-dasharray:4 6}
+.arrow.choice polygon{stroke:#e03131}
+.badges g{cursor:pointer}.badges circle{fill:#e03131;stroke:#fff;stroke-width:2}
+.badges text{fill:#fff;font:700 15px 'Nunito',system-ui,sans-serif;text-anchor:middle;pointer-events:none}
+.bar .status{color:#e03131;font-size:13px}
 @media (prefers-reduced-motion:reduce){svg.flowing .arrow .line,.arrow.step .line{animation:none}}
 """
 
@@ -146,7 +154,10 @@ shapes.forEach(s=>{
       const other=byId(a.dataset.from===s.id?a.dataset.to:a.dataset.from);light(other);
       labels.forEach(l=>{if(other&&l.dataset.for===other.id)light(l)})}})});
   s.addEventListener('mouseleave',()=>{svg.classList.remove('focus');svg.querySelectorAll('.lit').forEach(x=>x.classList.remove('lit'))});
-  if(s.dataset.link)s.addEventListener('click',()=>window.open(s.dataset.link,'_blank','noopener'));
+  s.addEventListener('click',()=>{
+    if(walk&&walk.choices){const i=walk.choices.findIndex(a=>other(a,walk.cur)===s.id);if(i>=0)return pick(i)}
+    if(svg.classList.contains('explore'))return explore(s.id);
+    if(s.dataset.link)window.open(s.dataset.link,'_blank','noopener')});
 });
 function autoPath(){const inc=new Set(arrows.map(a=>a.dataset.to));
   let cur=(shapes.find(s=>s.classList.contains('box')&&!inc.has(s.id))||shapes[0]||{}).id,seen=new Set(),out=[];
@@ -155,15 +166,47 @@ function autoPath(){const inc=new Set(arrows.map(a=>a.dataset.to));
 function namedPath(ids){const out=[];for(let i=0;i+1<ids.length;i++){const a=ids[i],b=ids[i+1];
   const hit=arrows.find(x=>(x.dataset.from===a&&x.dataset.to===b)||(x.dataset.bidirectional&&x.dataset.from===b&&x.dataset.to===a));
   if(hit)out.push(hit);else console.warn('no arrow between',a,'and',b)}return out}
-let timer=null;
-function play(seq){if(timer)clearInterval(timer);arrows.forEach(a=>a.classList.remove('step','done'));
-  if(!seq.length)return;svg.classList.add('playing');let i=0;
-  timer=setInterval(()=>{if(i>0)seq[i-1].classList.replace('step','done');
-    if(i>=seq.length){clearInterval(timer);timer=null;setTimeout(()=>{svg.classList.remove('playing');arrows.forEach(a=>a.classList.remove('done'))},800);return}
-    seq[i].classList.add('step');i++},700)}
-const names=Object.keys(paths);
-if(names.length){names.forEach(n=>{const b=document.createElement('button');b.textContent='play: '+n;b.onclick=()=>play(namedPath(paths[n]));bar.insertBefore(b,bar.querySelector('.hint'))})}
-else if(arrows.length){const b=document.createElement('button');b.textContent='play request path';b.onclick=()=>play(autoPath());bar.insertBefore(b,bar.querySelector('.hint'))}
+/* playback: named paths walk a list; explore walks the drawing and pauses at forks */
+let timer=null,walk=null;
+const status=document.createElement('span');status.className='status';bar.insertBefore(status,bar.querySelector('.hint'));
+function reset(){if(timer){clearTimeout(timer);timer=null}walk=null;status.textContent='';
+  arrows.forEach(a=>a.classList.remove('step','done','choice'));const b=svg.querySelector('g.badges');if(b)b.remove();svg.classList.remove('playing')}
+function finish(){timer=setTimeout(()=>{timer=null;walk=null;svg.classList.remove('playing');arrows.forEach(a=>a.classList.remove('done'))},800)}
+function play(seq){reset();if(!seq.length)return;svg.classList.add('playing');let i=0;
+  const tick=()=>{if(i>0)seq[i-1].classList.replace('step','done');if(i>=seq.length)return finish();seq[i].classList.add('step');i++;timer=setTimeout(tick,700)};
+  tick()}
+const other=(a,id)=>a.dataset.from===id?a.dataset.to:a.dataset.from;
+const name=id=>{const l=labels.find(l=>l.dataset.for===id),t=l&&l.querySelector('text');return t?t.textContent:id};
+function outgoing(id,visited){return arrows.filter(a=>!visited.has(a.id)&&(a.dataset.from===id||(a.dataset.bidirectional&&a.dataset.to===id)))}
+function explore(id){reset();if(!byId(id))return;svg.classList.add('playing');walk={cur:id,visited:new Set(),last:null,choices:null};stepWalk()}
+function stepWalk(){const w=walk;if(!w)return;if(w.last)w.last.classList.replace('step','done');
+  const opts=outgoing(w.cur,w.visited);
+  if(!opts.length){status.textContent='';return finish()}
+  if(opts.length===1)return go(opts[0]);
+  w.choices=opts;opts.forEach((a,i)=>{a.classList.add('choice');badge(a,i)});
+  status.textContent=opts.length+' ways out of '+name(w.cur)+': pick '+opts.map((a,i)=>KEYS[i]).join(', ')+' (click or type the letter)'}
+function go(a){const w=walk;w.choices=null;arrows.forEach(x=>x.classList.remove('choice'));const b=svg.querySelector('g.badges');if(b)b.remove();
+  a.classList.add('step');w.visited.add(a.id);w.last=a;w.cur=other(a,w.cur);status.textContent='';timer=setTimeout(stepWalk,700)}
+function pick(i){if(walk&&walk.choices&&walk.choices[i])go(walk.choices[i])}
+const NS='http://www.w3.org/2000/svg',KEYS='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+function mid(a){const pts=a.querySelector('.line').getAttribute('points').trim().split(/\\s+/).map(p=>p.split(',').map(Number));
+  let best=pts[0],bl=-1;for(let i=0;i+1<pts.length;i++){const [x0,y0]=pts[i],[x1,y1]=pts[i+1],l=Math.hypot(x1-x0,y1-y0);if(l>bl){bl=l;best=[(x0+x1)/2,(y0+y1)/2]}}return best}
+function badge(a,i){let g=svg.querySelector('g.badges');if(!g){g=document.createElementNS(NS,'g');g.setAttribute('class','badges');svg.appendChild(g)}
+  const [x,y]=mid(a),c=document.createElementNS(NS,'g');
+  const circle=document.createElementNS(NS,'circle');circle.setAttribute('cx',x);circle.setAttribute('cy',y);circle.setAttribute('r',13);
+  const t=document.createElementNS(NS,'text');t.setAttribute('x',x);t.setAttribute('y',y+5);t.textContent=KEYS[i]||'?';
+  c.append(circle,t);c.onclick=()=>pick(i);g.appendChild(c)}
+arrows.forEach(a=>a.addEventListener('click',()=>{if(walk&&walk.choices){const i=walk.choices.indexOf(a);if(i>=0)pick(i)}}));
+document.addEventListener('keydown',e=>{if(e.key==='Escape')return reset();if(e.key.length===1){const i=KEYS.indexOf(e.key.toUpperCase());if(i>=0)pick(i)}});
+const names=Object.keys(paths),hint=bar.querySelector('.hint');
+if(names.length){names.forEach(n=>{const b=document.createElement('button');b.textContent='play: '+n;b.onclick=()=>play(namedPath(paths[n]));bar.insertBefore(b,status)})}
+else if(arrows.length){const b=document.createElement('button');b.textContent='play request path';b.onclick=()=>play(autoPath());bar.insertBefore(b,status)}
+if(arrows.length){const b=document.createElement('button');b.id='explore';b.textContent='explore';
+  b.onclick=()=>{const on=svg.classList.toggle('explore');b.classList.toggle('on',on);if(!on)reset();
+    hint.textContent=on?'click a box to play from it; where it forks, the lettered badges are the ways out':hint.dataset.base};
+  hint.dataset.base=hint.textContent;flowBtn.after(b)}
+const q=new URLSearchParams(location.search);
+if(q.get('explore')){svg.classList.add('explore');const b=document.getElementById('explore');if(b)b.classList.add('on');explore(q.get('explore'))}
 """
 
 

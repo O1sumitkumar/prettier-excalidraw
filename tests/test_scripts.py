@@ -865,7 +865,56 @@ class TestHtmlExport(unittest.TestCase):
             self.assertIn("paths must be", r.stderr)
 
 
-class TestPreview(unittest.TestCase):
+class TestExploreMode(unittest.TestCase):
+    """HTML export explore mode: play from any box, pause at forks (#77)."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.td = tempfile.TemporaryDirectory()
+        cls.page = os.path.join(cls.td.name, "payment.html")
+        r = run("build.py", os.path.join(EXAMPLES, "payment.spec.json"), os.path.join(cls.td.name, "payment.excalidraw"), "--html")
+        assert r.returncode == 0, r.stderr
+        cls.html = open(cls.page, encoding="utf-8").read()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.td.cleanup()
+
+    def test_page_ships_explore_mode(self):
+        for needle in (".arrow.choice", "function explore(", "function outgoing(", "data-bidirectional", "q.get('explore')",
+                       "e.key==='Escape'", ".badges", "KEYS='ABCDEFGHIJKLMNOPQRSTUVWXYZ'"):
+            self.assertIn(needle, self.html, needle)
+
+    def _dom(self, query):
+        import export
+        chrome = export.find_chrome()
+        if not chrome:
+            self.skipTest("no Chrome/Chromium to run the page")
+        with tempfile.TemporaryDirectory() as td:
+            r = subprocess.run([chrome, "--headless=new", "--disable-gpu", f"--user-data-dir={os.path.join(td, 'p')}",
+                                "--virtual-time-budget=6000", "--dump-dom", "file://" + self.page + query],
+                               capture_output=True, text=True, timeout=120)
+        return r.stdout
+
+    def test_walk_pauses_at_the_fork_with_numbered_badges(self):
+        dom = self._dom("?explore=app")
+        # app -> gw -> pay are walked on their own; pay has three outgoing arrows, so the walk waits there
+        self.assertEqual(dom.count('class="arrow done"'), 2, "two single-exit steps completed")
+        self.assertEqual(dom.count('class="arrow choice"'), 3, "three candidates at the payment service")
+        self.assertEqual(dom.count("<circle cx="), 3, "one badge per candidate")
+        self.assertIn("3 ways out of payment service: pick A, B, C (click or type the letter)", dom)
+        self.assertEqual(re.findall(r'<text x="[\d.]+" y="[\d.]+">([A-Z])</text>', dom.split('class="badges"', 1)[1]), ["A", "B", "C"],
+                         "badges are lettered, not numbered: they are choices, not steps")
+        self.assertIn("playing", dom.split("<svg", 1)[1][:400], "the rest of the diagram is faded while walking")
+
+    def test_walk_from_a_dead_end_finishes_cleanly(self):
+        dom = self._dom("?explore=db")
+        self.assertEqual(dom.count('class="arrow choice"'), 0)
+        self.assertEqual(dom.count('class="arrow step"'), 0)
+        self.assertNotIn("playing", dom.split("<svg", 1)[1][:400], "finished walks release the page")
+
+
+
     def test_svg_written(self):
         with tempfile.TemporaryDirectory() as td:
             out = os.path.join(td, "p.svg")

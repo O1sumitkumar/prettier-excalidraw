@@ -26,6 +26,7 @@ moving anything.
 | **Guard a whole folder** | `lint.py docs/diagrams/` checks every diagram under a folder with a per-file summary, and a reusable GitHub Action does it on every pull request, so a team's diagrams stay consistent, not just one person's |
 | **Export** PNG or SVG | `--png` / `--svg` at build time or `export.py` on any file; the real Comic Shanns / Nunito fonts are embedded, so the image matches Excalidraw exactly |
 | **Animated HTML page** | `--html` writes one self-contained page from the same SVG: arrows flow in their direction, hovering a shape lights up its connections, a button plays a named request path one arrow at a time, linked shapes open on click |
+| **Explore mode** | On the same page, click any box to play forward from it along the drawing's own arrows; at a fork the walk pauses, letters the ways out A, B, C, and the reader picks one. Nothing to write in the spec; `?explore=<id>` deep-links a start |
 | **Shapes** beyond boxes | `diamond` decisions, `ellipse` start/end/actor markers, `note` captions, `divider` lines, `group`s that move together, dashed boxes and arrows, bidirectional arrows |
 | **Real logos**, sized right | Icons matched to labels by name from your own folder or fetched from [Simple Icons](https://simpleicons.org) with the brand colour; scaled to 65–95 % of the box, never stretched, darkened automatically when the contrast on a fill is too low |
 | **Your own style** | `profile.py` measures a folder of your diagrams (font, sizes, fills, arrow colours...) and writes a profile every script accepts in place of the house style |
@@ -34,6 +35,10 @@ moving anything.
 ![the animated HTML export: arrows flow, hovering the payment service lights up its connections, and the checkout path plays one arrow at a time](docs/animated-export.gif)
 
 *`build.py payment.spec.json payment.excalidraw --html`: arrows flow, hover shows a shape's connections, a button plays a named path.*
+
+![explore mode paused at a fork: the payment service has three ways out, lettered A, B and C, and the toolbar asks the reader to pick one](docs/explore-fork.png)
+
+*Explore mode on the same page: play from any box, pause at a fork, pick a branch.*
 
 ## Install
 
@@ -157,7 +162,7 @@ All in `skills/prettier-excalidraw/scripts/`, run from that directory.
 | `fix.py in out` | Mechanical fixes: font, sizes, roughness, fills, corners, heads, z-order. Never moves anything |
 | `preview.py file out.svg [--square]` | SVG render with exact text widths, for checking layout without Excalidraw |
 | `profile.py folder -o style.json` | Measure your own diagrams and write a style profile; pass `--style style.json` to the other scripts to use it instead of the house style |
-| `export.py file out.png\|out.svg\|out.html [--scale 2] [--spec spec.json]` | Shareable image with the real fonts embedded; Chrome or macOS quick-look for PNG. `.html` is a self-contained animated page (flow, hover, play). `build.py ... --png` / `--html` does it in one step |
+| `export.py file out.png\|out.svg\|out.html [--scale 2] [--spec spec.json]` | Shareable image with the real fonts embedded; Chrome or macOS quick-look for PNG. `.html` is a self-contained animated page (flow, hover, play, explore). `build.py ... --png` / `--html` does it in one step |
 | `icons.py search fly` / `icons.py fetch postgresql apachekafka -o icons/` | Find and download brand logos from Simple Icons with the brand colour applied |
 
 The spec format is documented in
